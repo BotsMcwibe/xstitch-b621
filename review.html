@@ -3,12 +3,12 @@
 <header><b>Review</b><nav><a href="index.html">Viewer</a><a class="on" href="review.html">Review</a><a href="compare.html">Compare</a></nav>
 <span id="prog"></span><label><input type="checkbox" id="hideDone"> Hide reviewed</label>
 <button class="btn" id="exportBtn">Export corrections (JSON)</button><label class="btn">Import corrections<input type="file" id="imp" accept=".json" hidden></label>
-</header><div id="bundlebar"></div>
+</header><div id="statusbar"><span id="status"></span></div>
 <div style="padding:8px"><p>Each card shows the scanned cell, the best guess and the second guess. Pick the symbol that matches the scan, or choose another number. Your choices are saved in this browser and the Viewer uses them.</p><div id="cards"></div></div>
 <script type="module">
-import {setupPicker,keyMap,kvGet,kvSet,corrKey} from './js/bundle.js';
+import {start,keyMap,getCorr,getDone,saveCorr} from './js/bundle.js';
 let B,K,corr={},done={};
-function save(){kvSet(corrKey(B),corr);kvSet(corrKey(B)+':done',done);prog();}
+function save(){saveCorr(corr,done);prog();}
 function prog(){const n=B.review.length,d=B.review.filter(x=>done[x.row+','+x.col]).length;document.getElementById('prog').textContent=`${d} / ${n} reviewed, ${Object.keys(corr).length} changed`;}
 function opt(nr,label,id,cur){const k=K[nr];return `<label><input type="radio" name="${id}" value="${nr}" ${cur===nr?'checked':''}> <img class="g" src="${B.glyphs[nr]}"> #${nr} ${label}<br><small>${k?k.symbol:''}</small></label>`;}
 function render(){const el=document.getElementById('cards');el.innerHTML='';const hide=document.getElementById('hideDone').checked;
@@ -21,10 +21,10 @@ function render(){const el=document.getElementById('cards');el.innerHTML='';cons
     d.querySelectorAll('input[type=radio]').forEach(r=>r.onchange=()=>set(id,+r.value,x,d));
     d.querySelector('[data-other]').onchange=e=>{const v=+e.target.value;if(K[v])set(id,v,x,d);};el.appendChild(d);});}
 function set(id,v,x,d){if(v===x.guess)delete corr[id];else corr[id]=v;done[id]=true;d.classList.add('done');save();}
-async function onLoad(b){B=b;K=keyMap(b);corr=await kvGet(corrKey(b))||{};done=await kvGet(corrKey(b)+':done')||{};prog();render();}
+async function onLoad(b){B=b;K=keyMap(b);corr=getCorr();done=getDone();prog();render();}
 document.getElementById('hideDone').onchange=render;
-document.getElementById('exportBtn').onclick=()=>{if(!B)return;const blob=new Blob([JSON.stringify({bundle:B.meta?.title,corrections:corr,reviewed:Object.keys(done)},null,1)],{type:'application/json'});
+document.getElementById('exportBtn').onclick=()=>{if(!B)return;const blob=new Blob([JSON.stringify({chart:B.meta?.title,corrections:corr,reviewed:Object.keys(done)},null,1)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='corrections.json';a.click();};
 document.getElementById('imp').onchange=async e=>{const j=JSON.parse(await e.target.files[0].text());corr=j.corrections||{};done={};(j.reviewed||[]).forEach(k=>done[k]=true);save();render();};
-setupPicker(onLoad);
+start(onLoad);
 </script></body></html>

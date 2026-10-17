@@ -12,5 +12,3 @@ samples/
 tmp/
 out/
 keyprev/
-data-private/*
-!data-private/.gitkeep

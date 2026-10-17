@@ -4,11 +4,11 @@
 <span>Show: <button class="btn sel" data-mode="sym">Symbols</button><button class="btn" data-mode="col">Colours + symbols</button></span>
 <label><input type="checkbox" id="lowChk"> Outline low-confidence cells</label>
 <label>Go to row <input id="gr" size="3"> col <input id="gc" size="3"></label><button class="btn" id="goBtn">Go</button>
-</header><div id="bundlebar"></div>
+</header><div id="statusbar"><span id="status"></span></div>
 <main><div id="side"><div id="info"></div><p>Click a colour to highlight it (others fade). Click again to clear.</p><div id="legend"></div></div>
 <div id="stage"><canvas id="cv"></canvas><div id="tip"></div></div></main>
 <script type="module">
-import {setupPicker,keyMap,loadImages,kvGet,corrKey} from './js/bundle.js';
+import {start,keyMap,loadImages,getCorr} from './js/bundle.js';
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage'),tip=document.getElementById('tip');
 let grey={},B=null,K={},G={},grid=null,mode='sym',hi=null,showLow=false,lowSet=new Set(),view={s:14,x:40,y:40};
 function resize(){cv.width=stage.clientWidth;cv.height=stage.clientHeight;draw();}addEventListener('resize',resize);
@@ -41,9 +41,9 @@ function legend(){const n=counts();const el=document.getElementById('legend');el
     d.innerHTML=`<span class="mono">${k.nr}</span><span class="sw" style="background:${k.hex}"></span><img src="${B.glyphs[k.nr]}"><span>${k.symbol}${k.code?' · '+k.code:''}<br><small>key ${k.count} · chart ${got}${diff?` <span class="mismatch">(${diff>0?'+':''}${diff})</span>`:' ✓'}</small></span>`;
     d.onclick=()=>{hi=hi===k.nr?null:k.nr;legend();draw();};el.appendChild(d);});}
 async function onLoad(b){B=b;K=keyMap(b);G=await loadImages(b.glyphs);for(const k in tinted)delete tinted[k];grey={};for(const [nr,g] of Object.entries(G)){const c=document.createElement('canvas');c.width=c.height=1;const x=c.getContext('2d');x.drawImage(g,0,0,1,1);const v=x.getImageData(0,0,1,1).data[0];grey[nr]=`rgb(${v},${v},${v})`;}
-  grid=Int16Array.from(b.grid.nr);const corr=await kvGet(corrKey(b))||{};let nc=0;for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*b.grid.cols+(c-1)]=v;nc++;}
+  grid=Int16Array.from(b.grid.nr);const corr=getCorr();let nc=0;for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*b.grid.cols+(c-1)]=v;nc++;}
   lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*b.grid.cols+(c-1)));
-  document.getElementById('info').innerHTML=`<b>${b.meta?.title||''}</b><br>${b.grid.cols}×${b.grid.rows} stitches · ${b.key.length} colours<br>${b.grid.low?.length||0} low-confidence cells, ${nc} corrected in Review${b.meta?.demo?'<br><i>Demo data: abstract and made up.</i>':''}`;
+  document.getElementById('info').innerHTML=`<b>${b.meta?.title||''}</b><br>${b.grid.cols}×${b.grid.rows} stitches · ${b.key.length} colours<br>${b.grid.low?.length||0} low-confidence cells, ${nc} corrected in Review`;
   view.s=Math.max(4,Math.min(20,Math.floor((stage.clientWidth-50)/b.grid.cols)));view.x=40;view.y=24;hi=null;legend();resize();}
 document.querySelectorAll('[data-mode]').forEach(bt=>bt.onclick=()=>{mode=bt.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('sel',x===bt));draw();});
 document.getElementById('lowChk').onchange=e=>{showLow=e.target.checked;draw();};
@@ -57,5 +57,5 @@ cv.onmousemove=e=>{if(drag){view.x=drag.vx+e.clientX-drag.x;view.y=drag.vy+e.cli
   const nr=grid[r*B.grid.cols+c],k=K[nr],cf=B.grid.conf?B.grid.conf[r*B.grid.cols+c]:null;
   tip.innerHTML=`Row ${r+1}, col ${c+1}<br>#${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;tip.style.left=(e.offsetX+14)+'px';tip.style.top=(e.offsetY+14)+'px';tip.style.display='block';};
 cv.onmouseleave=()=>tip.style.display='none';
-setupPicker(onLoad);resize();
+start(onLoad);resize();
 </script></body></html>

@@ -2,10 +2,9 @@
 *{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
 header{display:flex;gap:16px;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid #ccc;flex-wrap:wrap}
 header nav a{margin-right:12px;color:var(--blue);font-weight:600}header nav a.on{color:var(--ink);text-decoration:none}
-#bundlebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;background:#eef3f8;border-bottom:1px solid #ccd}
+#statusbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 12px;background:#eef3f8;border-bottom:1px solid #ccd}
 .btn{display:inline-block;padding:4px 10px;border:1px solid #888;border-radius:4px;background:#fff;cursor:pointer;font:inherit}
 .btn.sel{border:2px solid var(--blue);background:#e6f0f8}
-body.drag{outline:6px dashed var(--blue);outline-offset:-6px}
 main{display:flex;height:calc(100vh - 92px)}#side{width:340px;overflow:auto;border-right:1px solid #ccc;padding:8px;background:#fff}
 #stage{flex:1;position:relative;overflow:hidden}canvas{display:block}
 .legend-row{display:flex;align-items:center;gap:6px;padding:2px 4px;cursor:pointer;border:2px solid transparent;border-radius:4px}

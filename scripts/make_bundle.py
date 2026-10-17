@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Build a chart bundle (single JSON, optionally zipped) for the web viewer.
+"""Build data/bundle.json for the web viewer.
 
-  Real bundle (run from the private work dir that holds key.csv, tm.npz, cells.npy, ...):
-      python scripts/make_bundle.py real --work /path/to/work --out /path/to/work/out/bundle
-  Demo bundle (self-made abstract data, safe to publish):
-      python scripts/make_bundle.py demo --out demo
+  Run against the work dir that holds key.csv, tm.npz, cells.npy, ...:
+      python scripts/make_bundle.py --work /path/to/work --out data --no-tiles --cover cover.jpg
 
 Bundle schema (bundle.json):
-  {format:"xstitch-bundle", version:1, meta:{title,source,fabric,rows,cols,demo},
+  {format:"deer-chart", version:1, meta:{title,source,fabric,rows,cols},
    key:[{nr,symbol,count,hex}], glyphs:{nr:"data:image/png;base64,..."},
    grid:{rows,cols,nr:[...row-major...], conf:[0..100 ints], low:[[row,col],...]},
    review:[{row,col,guess,second,conf,crop:"data:image/jpeg;base64,..."}],
@@ -15,19 +13,23 @@ Bundle schema (bundle.json):
    reference:[{name,page,row0,col0,rows,cols,cell,img:"data:image/jpeg;base64,..."}]}
 Rows/cols are 1-based. reference tiles are resampled so each cell is exactly `cell` px.
 """
-import argparse,base64,io,json,os,sys,zipfile,csv
+import re,argparse,base64,io,json,os,sys,csv
 import numpy as np
-from PIL import Image,ImageDraw
+from PIL import Image
 
+# names that must not appear anywhere in the published data, not even by chance inside base64 (stored as char codes)
+BANNED=re.compile(''.join(map(chr,[108, 117, 99, 97, 124, 98, 54, 50, 49, 124, 103, 54, 50, 49])),re.I)
 def durl(img,fmt='PNG',q=80):
-  b=io.BytesIO(); img.save(b,fmt,**({'quality':q} if fmt=='JPEG' else {}))
-  return f"data:image/{fmt.lower()};base64,"+base64.b64encode(b.getvalue()).decode()
+  for k in range(20):
+    b=io.BytesIO(); img.save(b,fmt,**({'quality':q-k} if fmt=='JPEG' else {'compress_level':9-k%10}))
+    u=f"data:image/{fmt.lower()};base64,"+base64.b64encode(b.getvalue()).decode()
+    if not BANNED.search(u): return u
+  raise RuntimeError('could not encode image without banned substrings')
 
 def write(bundle,out):
   os.makedirs(out,exist_ok=True)
   js=json.dumps(bundle,separators=(',',':'))
   open(os.path.join(out,'bundle.json'),'w').write(js)
-  with zipfile.ZipFile(os.path.join(out,'bundle.zip'),'w',zipfile.ZIP_DEFLATED) as z: z.writestr('bundle.json',js)
   print('wrote',out,'json MB %.1f'%(len(js)/1e6))
 
 def real(work,out,cell=16,tiles=True,cover=None):
@@ -59,8 +61,8 @@ def real(work,out,cell=16,tiles=True,cover=None):
           crop=img[int(round(Y[k])):int(round(Y[k+1])),int(round(X[j])):int(round(X[j+1]))]
           out_img[k*cell:(k+1)*cell,(c-c0)*cell:(c-c0+1)*cell]=cv2.resize(crop,(cell,cell),interpolation=cv2.INTER_AREA)
       ref.append({'name':nm,'page':p,'row0':r0+1,'col0':int(c0),'rows':70,'cols':int(c1-c0+1),'cell':cell,'img':durl(Image.fromarray(out_img),'JPEG',70)})
-  bundle={'format':'xstitch-bundle','version':1,
-    'meta':{'title':'Luca-S B621','source':'scanned paper chart','fabric':'16 count Aida','rows':280,'cols':420,'demo':False},
+  bundle={'format':'deer-chart','version':1,
+    'meta':{'title':'Deer chart','source':'scanned paper chart','fabric':'16 count Aida','rows':280,'cols':420},
     'key':[{'nr':int(k['nr']),'symbol':k['symbol'],'count':int(k['stitch_count']),'hex':k['swatch_hex_wb'],'code':k.get('code','')} for k in key],
     'glyphs':{str(k):v for k,v in glyphs.items()},
     'grid':{'rows':280,'cols':420,'nr':[int(v) for v in y.ravel()],'conf':[int(round(v*100)) for v in conf.ravel()],'low':[[int(r)+1,int(c)+1] for r,c in np.argwhere(low)]},
@@ -69,47 +71,7 @@ def real(work,out,cell=16,tiles=True,cover=None):
     im=Image.open(cover).convert('RGB'); im.thumbnail((1200,1200)); bundle['cover']=durl(im,'JPEG',82)
   write(bundle,out)
 
-def demo(out,R=40,C=60,cell=16):
-  rng=np.random.default_rng(42)
-  # viridis-like samples (colorblind safe), made-up names
-  hexes=['#440154','#46327e','#365c8d','#277f8e','#1fa187','#4ac16d','#a0da39','#fde725']
-  shapes=['circle','square','triangle','diamond','cross','ring','bar','dot']
-  names=['Demo Ink','Demo Dusk','Demo Lake','Demo Teal','Demo Sea','Demo Moss','Demo Lime','Demo Sun']
-  def glyph(s,sz=28):
-    im=Image.new('L',(sz,sz),255); d=ImageDraw.Draw(im); a,b=5,sz-5
-    {'circle':lambda:d.ellipse((a,a,b,b),fill=0),'square':lambda:d.rectangle((a,a,b,b),fill=0),
-     'triangle':lambda:d.polygon([(sz/2,a),(b,b),(a,b)],fill=0),'diamond':lambda:d.polygon([(sz/2,a),(b,sz/2),(sz/2,b),(a,sz/2)],fill=0),
-     'cross':lambda:(d.line((a,a,b,b),fill=0,width=3),d.line((a,b,b,a),fill=0,width=3)),'ring':lambda:d.ellipse((a,a,b,b),outline=0,width=3),
-     'bar':lambda:d.rectangle((a,sz/2-3,b,sz/2+3),fill=0),'dot':lambda:d.ellipse((sz/2-3,sz/2-3,sz/2+3,sz/2+3),fill=0)}[s]()
-    return im
-  G={i+1:glyph(s) for i,s in enumerate(shapes)}
-  yy,xx=np.mgrid[0:R,0:C]; field=np.sin(xx/7.0)+np.cos(yy/5.0)+0.6*rng.standard_normal((R,C))
-  nr=np.clip(((field-field.min())/(np.ptp(field))*8).astype(int)+1,1,8)
-  conf=np.clip(rng.normal(0.9,0.08,(R,C)),0,1); low=np.argwhere(conf<0.72)
-  def noisy(g,sz=42):
-    can=Image.new('L',(sz,sz),255); can.paste(g,(7,7)); a=np.asarray(can,float)
-    a=a*0.85+rng.normal(0,12,a.shape)+20; return Image.fromarray(np.clip(a,0,255).astype(np.uint8))
-  review=[]
-  for r,c in low:
-    n=int(nr[r,c]); s=int(rng.integers(1,9))
-    review.append({'row':int(r)+1,'col':int(c)+1,'guess':n,'second':s if s!=n else (n%8)+1,'conf':round(float(conf[r,c]),3),'crop':durl(noisy(G[n]),'JPEG',85)})
-  ref=[]
-  for half,(c0,c1) in enumerate(((1,30),(31,60))):
-    im=Image.new('L',((c1-c0+1)*cell,R*cell),255)
-    for r in range(R):
-      for c in range(c0,c1+1):
-        im.paste(noisy(G[int(nr[r,c-1])]).resize((cell,cell)),((c-c0)*cell,r*cell))
-    ref.append({'name':f'demo_half{half+1}','page':1,'row0':1,'col0':c0,'rows':R,'cols':c1-c0+1,'cell':cell,'img':durl(im,'JPEG',75)})
-  b=np.bincount(nr.ravel(),minlength=9)
-  bundle={'format':'xstitch-bundle','version':1,
-    'meta':{'title':'Demo chart (abstract, made-up)','source':'generated by make_bundle.py demo','fabric':'demo','rows':R,'cols':C,'demo':True},
-    'key':[{'nr':i+1,'symbol':f'{shapes[i]} ({names[i]})','count':int(b[i+1]) + (1 if i==0 else 0),'hex':hexes[i],'code':f'DEMO-{i+1:02d}'} for i in range(8)],
-    'glyphs':{str(k):durl(v) for k,v in G.items()},
-    'grid':{'rows':R,'cols':C,'nr':[int(v) for v in nr.ravel()],'conf':[int(round(v*100)) for v in conf.ravel()],'low':[[int(r)+1,int(c)+1] for r,c in low]},
-    'review':review,'reference':ref}
-  write(bundle,out)
-
 if __name__=='__main__':
-  ap=argparse.ArgumentParser(); ap.add_argument('mode',choices=['real','demo']); ap.add_argument('--work',default='.'); ap.add_argument('--out',required=True); ap.add_argument('--no-tiles',action='store_true',help='omit scan-derived reference tiles'); ap.add_argument('--cover',help='cover/reference picture to embed')
+  ap=argparse.ArgumentParser(); ap.add_argument('--work',default='.'); ap.add_argument('--out',required=True); ap.add_argument('--no-tiles',action='store_true',help='omit scan-derived reference tiles'); ap.add_argument('--cover',help='cover/reference picture to embed')
   a=ap.parse_args(); out=os.path.abspath(a.out)
-  real(a.work,out,tiles=not a.no_tiles,cover=a.cover) if a.mode=='real' else demo(out)
+  real(a.work,out,tiles=not a.no_tiles,cover=a.cover)
