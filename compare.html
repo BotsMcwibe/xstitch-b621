@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Compare</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"></head><body>
+<header><b>Compare</b><nav><a href="index.html">Viewer</a><a href="review.html">Review</a><a class="on" href="compare.html">Compare</a></nav>
+<label>Reference: <select id="sel"></select></label><span id="hint"></span></header><div id="bundlebar"></div>
+<div style="display:flex;gap:12px;padding:8px;align-items:flex-start;flex-wrap:wrap">
+<div><b id="lt">Reference</b><br><canvas id="a"></canvas></div><div><b>Redrawn from the chart data</b><br><canvas id="b"></canvas></div></div>
+<p style="padding:0 8px">Move the mouse over either side: the same spot is marked with a blue box on both.</p>
+<script type="module">
+import {setupPicker,keyMap,loadImages,kvGet,corrKey} from './js/bundle.js';
+let B,K,G,grid,refs=[],cur=0,refImg=null;const A=document.getElementById('a'),Bc=document.getElementById('b');
+async function onLoad(b){B=b;K=keyMap(b);G=await loadImages(b.glyphs);grid=Int16Array.from(b.grid.nr);
+  const corr=await kvGet(corrKey(b))||{};for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*b.grid.cols+c-1]=v;}
+  refs=[];if(b.cover)refs.push({name:'Cover picture vs colour redraw (whole chart)',cover:true,img:b.cover,row0:1,col0:1,rows:b.grid.rows,cols:b.grid.cols});
+  (b.reference||[]).forEach(r=>refs.push({...r,name:`${r.name} (page ${r.page}, rows ${r.row0}-${r.row0+r.rows-1}, cols ${r.col0}-${r.col0+r.cols-1})`}));
+  const sel=document.getElementById('sel');sel.innerHTML=refs.map((r,i)=>`<option value="${i}">${r.name}</option>`).join('');
+  sel.onchange=()=>show(+sel.value);if(refs.length)show(0);else document.getElementById('hint').textContent='This bundle has no reference images.';}
+async function show(i){cur=i;const r=refs[i];refImg=(await loadImages({x:r.img})).x;
+  const maxW=Math.floor((innerWidth-60)/2);const sc=Math.min(1,maxW/refImg.width);A.width=Math.round(refImg.width*sc);A.height=Math.round(refImg.height*sc);Bc.width=A.width;Bc.height=A.height;
+  document.getElementById('lt').textContent=r.cover?'Cover picture (as printed on the key)':'Scan (resampled, one cell per square)';redraw();}
+function lum(h){const n=parseInt(h.slice(1),16);return 0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255);}
+function redraw(mark){const r=refs[cur],a=A.getContext('2d'),b=Bc.getContext('2d');a.drawImage(refImg,0,0,A.width,A.height);
+  const cw=Bc.width/r.cols,ch=Bc.height/r.rows;b.fillStyle='#fff';b.fillRect(0,0,Bc.width,Bc.height);
+  for(let y=0;y<r.rows;y++)for(let x=0;x<r.cols;x++){const nr=grid[(r.row0-1+y)*B.grid.cols+(r.col0-1+x)];
+    if(r.cover){b.fillStyle=K[nr]?K[nr].hex:'#fff';b.fillRect(x*cw,y*ch,Math.ceil(cw),Math.ceil(ch));}
+    else{b.drawImage(G[nr],x*cw+1,y*ch+1,cw-2,ch-2);}}
+  if(!r.cover){b.strokeStyle='#666';for(let x=0;x<=r.cols;x++){b.lineWidth=(r.col0-1+x)%10===0?2:0.4;b.beginPath();b.moveTo(x*cw,0);b.lineTo(x*cw,Bc.height);b.stroke();}
+    for(let y=0;y<=r.rows;y++){b.lineWidth=(r.row0-1+y)%10===0?2:0.4;b.beginPath();b.moveTo(0,y*ch);b.lineTo(Bc.width,y*ch);b.stroke();}}
+  if(mark){const s=r.cover?10:1;for(const c of [a,b]){c.strokeStyle='#0072B2';c.lineWidth=3;c.strokeRect((mark.x-(s>1?s/2:0))*cw,(mark.y-(s>1?s/2:0))*ch,cw*s,ch*s);}
+    document.getElementById('hint').textContent=`Row ${r.row0+mark.y}, col ${r.col0+mark.x}: #${grid[(r.row0-1+mark.y)*B.grid.cols+(r.col0-1+mark.x)]} ${K[grid[(r.row0-1+mark.y)*B.grid.cols+(r.col0-1+mark.x)]]?.symbol||''}`;}}
+for(const c of [A,Bc])c.onmousemove=e=>{const r=refs[cur];if(!r)return;redraw({x:Math.floor(e.offsetX/(c.width/r.cols)),y:Math.floor(e.offsetY/(c.height/r.rows))});};
+setupPicker(onLoad);
+</script></body></html>
