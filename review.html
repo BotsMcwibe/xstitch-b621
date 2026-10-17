@@ -1,16 +1,17 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>Review low-confidence cells</title>
 <meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"></head><body>
-<header><b>Review</b><nav><a href="index.html">Viewer</a><a class="on" href="review.html">Review</a><a href="compare.html">Compare</a></nav>
+<header><b>Review</b><nav><a href="index.html">Viewer</a><a class="on" href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
 <span id="prog"></span><label><input type="checkbox" id="hideDone"> Hide reviewed</label>
 <button class="btn" id="exportBtn">Export corrections (JSON)</button><label class="btn">Import corrections<input type="file" id="imp" accept=".json" hidden></label>
 </header><div id="statusbar"><span id="status"></span></div>
 <div style="padding:8px"><p>Each card shows the scanned cell, the best guess and the second guess. Pick the symbol that matches the scan, or choose another number. Your choices are saved in this browser and the Viewer uses them.</p><div id="cards"></div></div>
 <script type="module">
 import {start,keyMap,getCorr,getDone,saveCorr} from './js/bundle.js';
+import {symUrl} from './js/symbols.js';
 let B,K,corr={},done={};
 function save(){saveCorr(corr,done);prog();}
 function prog(){const n=B.review.length,d=B.review.filter(x=>done[x.row+','+x.col]).length;document.getElementById('prog').textContent=`${d} / ${n} reviewed, ${Object.keys(corr).length} changed`;}
-function opt(nr,label,id,cur){const k=K[nr];return `<label><input type="radio" name="${id}" value="${nr}" ${cur===nr?'checked':''}> <img class="g" src="${B.glyphs[nr]}"> #${nr} ${label}<br><small>${k?k.symbol:''}</small></label>`;}
+function opt(nr,label,id,cur){const k=K[nr];return `<label><input type="radio" name="${id}" value="${nr}" ${cur===nr?'checked':''}> <img class="g" src="${symUrl(nr)}"> #${nr} ${label}<br><small>${k?k.symbol:''}</small></label>`;}
 function render(){const el=document.getElementById('cards');el.innerHTML='';const hide=document.getElementById('hideDone').checked;
   B.review.forEach((x,i)=>{const id=x.row+','+x.col;if(hide&&done[id])return;const cur=corr[id]??x.guess;
     const d=document.createElement('div');d.className='card'+(done[id]?' done':'');

@@ -45,6 +45,12 @@ def real(work,out,cell=16,tiles=True,cover=None,reference=None):
   C=np.load('cells.npy')
   review=[{'row':int(r)+1,'col':int(c)+1,'guess':int(y[r,c]),'second':int(y2[r,c]),'conf':round(float(conf[r,c]),3),
            'crop':durl(Image.fromarray(C[r,c]),'JPEG',85)} for r,c in np.argwhere(low)]
+  # a few clean scan examples per key number (highest template match), for symbols.html
+  best=d['best'].reshape(280,420); examples={}
+  for k in key:
+    n=int(k['nr']); rr,cc=np.where(y==n); o=np.argsort(-best[rr,cc])
+    pick=[o[i] for i in np.linspace(0,min(len(o)-1,300),4).astype(int)] if len(o) else []
+    examples[str(n)]=[durl(Image.fromarray(C[rr[i],cc[i]]),'JPEG',88) for i in pick]
   import cells as CM
   _,info=pickle.load(open('src.pkl','rb')); ref=[]
   for p,inf in (sorted(info.items()) if tiles else []):
@@ -66,7 +72,7 @@ def real(work,out,cell=16,tiles=True,cover=None,reference=None):
     'key':[{'nr':int(k['nr']),'symbol':k['symbol'],'count':int(k['stitch_count']),'hex':k['swatch_hex_wb'],'code':k.get('code','')} for k in key],
     'glyphs':{str(k):v for k,v in glyphs.items()},
     'grid':{'rows':280,'cols':420,'nr':[int(v) for v in y.ravel()],'conf':[int(round(v*100)) for v in conf.ravel()],'low':[[int(r)+1,int(c)+1] for r,c in np.argwhere(low)]},
-    'review':review,'reference':ref}
+    'review':review,'reference':ref,'examples':examples}
   if reference:  # clean full-scene render, aligned to the 420x280 grid (see scripts/align_ref.py)
     im=Image.open(reference).convert('RGB'); im.save(os.path.join(out,'reference.webp'),'WEBP',quality=92,method=6)
     bundle['reference_image']={'src':'data/reference.webp','width':im.width,'height':im.height,'box':[0,0,im.width,im.height]}

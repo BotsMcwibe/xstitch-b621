@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Symbol check</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css">
+<style>.row{display:flex;gap:14px;align-items:center;background:#fff;border:2px solid #ccc;border-radius:6px;margin:6px 8px;padding:6px}
+.row.ok{border-color:#0072B2}.row.wrong,.row.tweak{border-color:#E69F00;border-style:dashed}
+.ex{position:relative;width:84px;height:84px}.ex img.scan{width:84px;height:84px;image-rendering:pixelated}.ex img.ov{position:absolute;left:10px;top:10px;width:72px;height:72px;opacity:.55;display:none;filter:invert(27%) sepia(90%) saturate(1500%) hue-rotate(185deg)}
+body.overlay .ex img.ov{display:block}.big{width:120px;height:120px;border:1px solid #999;background:#fff}.small{width:24px;height:24px;border:1px solid #999;background:#fff}
+.nr{font:700 20px system-ui;width:36px;text-align:right}.meta{width:230px}.st label{display:block}textarea{width:220px;height:46px}</style></head><body>
+<header><b>Symbol check</b><nav><a href="index.html">Viewer</a><a href="review.html">Review</a><a href="compare.html">Compare</a><a class="on" href="symbols.html">Symbols</a></nav>
+<label><input type="checkbox" id="ovChk"> Overlay the vector symbol (blue) on the scan crops</label>
+<button class="btn" id="copyBtn">Copy results</button><span id="copyMsg"></span><span id="prog"></span></header>
+<div id="statusbar"><span id="status"></span></div>
+<p style="padding:0 8px">For each key number: scan examples from the chart, the vector symbol at small and large size, and where it came from (a Unicode code point, or "custom" if drawn by hand). Mark each one OK / wrong / needs tweak and add a note if useful. Your choices are saved in this browser. "Copy results" puts a short summary on the clipboard to paste back.</p>
+<div id="list"></div>
+<script type="module">
+import {start,keyMap} from './js/bundle.js';
+import {loadSymbols,symUrl} from './js/symbols.js';
+const LS='deerchart:symbolcheck';let st={};try{st=JSON.parse(localStorage.getItem(LS))||{};}catch(e){}
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(st));}catch(e){}prog();};
+let B;function prog(){const n=B?B.key.length:64,d=Object.values(st).filter(v=>v.s).length;document.getElementById('prog').textContent=` ${d}/${n} checked`;}
+async function onLoad(b){B=b;const SYM=await loadSymbols();const el=document.getElementById('list');
+  el.innerHTML=b.key.map(k=>{const s=SYM[k.nr],v=st[k.nr]||{};const src=s.kind==='unicode'?`${s.codepoint} “${s.char}” (${s.font})`:'custom';
+    return `<div class="row ${v.s||''}" id="r${k.nr}"><div class="nr">${k.nr}</div>
+     <div style="display:flex;gap:6px">${(b.examples?.[k.nr]||[]).map(u=>`<div class="ex"><img class="scan" src="${u}"><img class="ov" src="${symUrl(k.nr)}"></div>`).join('')}</div>
+     <img class="small" src="${symUrl(k.nr)}" alt=""><img class="big" src="${symUrl(k.nr)}" alt="">
+     <div class="meta"><b>${k.symbol}</b><br><small>${src}</small><br><small>${k.count} stitches</small></div>
+     <div class="st">${['ok','wrong','tweak'].map(x=>`<label><input type="radio" name="s${k.nr}" value="${x}" ${v.s===x?'checked':''}> ${x==='ok'?'OK':x==='wrong'?'Wrong':'Needs tweak'}</label>`).join('')}</div>
+     <textarea placeholder="note" data-nr="${k.nr}">${v.n||''}</textarea></div>`;}).join('');
+  el.querySelectorAll('input[type=radio]').forEach(r=>r.onchange=()=>{const nr=r.name.slice(1);st[nr]={...(st[nr]||{}),s:r.value};document.getElementById('r'+nr).className='row '+r.value;save();});
+  el.querySelectorAll('textarea').forEach(t=>t.oninput=()=>{const nr=t.dataset.nr;st[nr]={...(st[nr]||{}),n:t.value};save();});prog();}
+document.getElementById('ovChk').onchange=e=>document.body.classList.toggle('overlay',e.target.checked);
+function summary(){const g={ok:[],wrong:[],tweak:[]},notes=[],todo=[];
+  for(let n=1;n<=(B?B.key.length:64);n++){const v=st[n]||{};if(v.s)g[v.s].push(n);else todo.push(n);if(v.n&&v.n.trim())notes.push(`${n}:${v.n.trim().replace(/[;|\n]+/g,' ')}`);}
+  const rng=a=>a.reduce((o,n,i)=>{if(i&&n===a[i-1]+1){o[o.length-1][1]=n;}else o.push([n,n]);return o;},[]).map(([a,b])=>a===b?a:a+'-'+b).join(',');
+  return `SYMCHECK1|ok:${rng(g.ok)}|wrong:${rng(g.wrong)}|tweak:${rng(g.tweak)}|unchecked:${rng(todo)}|notes:${notes.join(';')}`;}
+document.getElementById('copyBtn').onclick=async()=>{const t=summary();try{await navigator.clipboard.writeText(t);document.getElementById('copyMsg').textContent=' Copied.';}
+  catch(e){prompt('Copy this text:',t);}};
+start(onLoad);
+</script></body></html>

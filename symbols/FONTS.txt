@@ -1,0 +1,5 @@
+The Unicode-based symbols here are outline paths converted from the DejaVu fonts
+(DejaVu Sans, DejaVu Sans Bold, DejaVu Serif, DejaVu Sans Mono Oblique) by
+scripts/make_symbols.py. DejaVu fonts are free software (Bitstream Vera / Arev
+licence, public-domain changes). See https://dejavu-fonts.github.io/License.html
+The other symbols are custom SVG drawings made for this project (MIT).

@@ -3,7 +3,7 @@
 <style>.wrap{position:relative;display:inline-block}.wrap canvas{position:absolute;left:0;top:0}#views{padding:8px;overflow:auto;max-height:calc(100vh - 150px)}
 #keytab{font-size:12px}#keytab tr{cursor:pointer}#keytab tr.on{outline:2px solid var(--blue)}#keytab tr.out td{background:#ffe9b3;font-weight:700}
 .cbar{height:12px;width:220px;display:inline-block;vertical-align:middle;border:1px solid #333}</style></head><body>
-<header><b>Compare</b><nav><a href="index.html">Viewer</a><a href="review.html">Review</a><a class="on" href="compare.html">Compare</a></nav>
+<header><b>Compare</b><nav><a href="index.html">Viewer</a><a href="review.html">Review</a><a class="on" href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
 <span>View: <button class="btn sel" data-v="side">Side by side</button><button class="btn" data-v="swipe">Swipe</button><button class="btn" data-v="onion">Onion skin</button><button class="btn" data-v="heat">Difference heatmap</button></span>
 <label>Zoom <select id="zoom"><option>2</option><option selected>3</option><option>4</option><option>6</option><option>8</option><option>12</option></select> px/stitch</label>
 <label><input type="checkbox" id="norm" checked> Colour-normalised redraw</label>
@@ -15,6 +15,7 @@
 <div id="views" style="flex:1"></div></main>
 <script type="module">
 import {start,keyMap,loadImages,getCorr} from './js/bundle.js';
+import {symUrl} from './js/symbols.js';
 const CIV=[[0,32,77],[0,52,110],[57,72,108],[87,92,109],[112,113,115],[138,135,120],[166,157,116],[195,180,104],[225,205,86],[253,231,55]]; // cividis stops
 function civ(t){if(!isFinite(t))t=0;t=Math.max(0,Math.min(1,t))*(CIV.length-1);const i=Math.min(CIV.length-2,Math.floor(t)),f=t-i;return CIV[i].map((v,k)=>Math.round(v+(CIV[i+1][k]-v)*f));}
 const $=id=>document.getElementById(id);
@@ -47,7 +48,7 @@ function analyse(){
   const all=[...dE].sort((a,b)=>a-b);dmax=Math.ceil(all[Math.floor(all.length*0.98)]);
   $('hint').textContent=`median ΔE ${all[all.length>>1].toFixed(1)}; heat scale 0–${dmax}`;}
 function table(){$('keytab').innerHTML='<tr><th>nr</th><th></th><th>symbol</th><th>stitches</th><th>mean ΔE</th><th>z</th></tr>'+keyStats.map(s=>{const k=K[s.nr];
-  return `<tr data-nr="${s.nr}" class="${s.z>2.5?'out':''} ${sel===s.nr?'on':''}"><td>${s.nr}</td><td><span class="sw" style="display:inline-block;background:${k.hex}"></span> <img src="${B.glyphs[s.nr]}" width="16" height="16"></td><td style="text-align:left">${k.symbol}</td><td>${s.n}</td><td>${s.mean.toFixed(1)}</td><td>${s.z.toFixed(1)}</td></tr>`;}).join('');
+  return `<tr data-nr="${s.nr}" class="${s.z>2.5?'out':''} ${sel===s.nr?'on':''}"><td>${s.nr}</td><td><span class="sw" style="display:inline-block;background:${k.hex}"></span> <img src="${symUrl(s.nr)}" width="16" height="16"></td><td style="text-align:left">${k.symbol}</td><td>${s.n}</td><td>${s.mean.toFixed(1)}</td><td>${s.z.toFixed(1)}</td></tr>`;}).join('');
   $('keytab').querySelectorAll('tr[data-nr]').forEach(tr=>tr.onclick=()=>{const n=+tr.dataset.nr;sel=sel===n?null:n;table();draw();});}
 function chartCanvas(){const c=document.createElement('canvas');c.width=C;c.height=R;const x=c.getContext('2d'),im=x.createImageData(C,R);const useN=$('norm').checked;
   for(let i=0;i<R*C;i++){const rgb=useN?lab2rgb(labNorm[i]):hex2rgb(K[grid[i]].hex);im.data.set([...rgb,255],i*4);}x.putImageData(im,0,0);return c;}
