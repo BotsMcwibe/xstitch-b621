@@ -1,57 +1,166 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Chart viewer</title>
-<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"></head><body>
-<header><b>Cross-stitch chart</b><nav><a class="on" href="index.html">Viewer</a><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
-<span>Show: <button class="btn sel" data-mode="sym">Symbols</button><button class="btn" data-mode="col">Colours + symbols</button></span>
-<label><input type="checkbox" id="lowChk"> Outline low-confidence cells</label>
-<label>Go to row <input id="gr" size="3"> col <input id="gc" size="3"></label><button class="btn" id="goBtn">Go</button>
-</header><div id="statusbar"><span id="status"></span></div>
-<main><div id="side"><div id="info"></div><p>Click a colour to highlight it (others fade). Click again to clear.</p><div id="legend"></div></div>
-<div id="stage"><canvas id="cv"></canvas><div id="tip"></div></div></main>
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><title>Chart viewer</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+:root{--bg:#121417;--panel:rgba(28,31,36,.94);--fg:#e6e6e6;--mut:#9aa0a6;--line:#3a3f46;--cell:#1c1f24;--sym:#e9e9e9;--grid:rgba(255,255,255,.13);--grid10:rgba(255,255,255,.38);--acc:#E69F00;--acc2:#56B4E9;--btn:#2a2e35}
+[data-theme=light]{--bg:#f3f3f1;--panel:rgba(255,255,255,.95);--fg:#1d1d1d;--mut:#5f6368;--line:#d0d0d0;--cell:#ffffff;--sym:#111;--grid:rgba(0,0,0,.16);--grid10:rgba(0,0,0,.5);--acc:#0072B2;--acc2:#E69F00;--btn:#ececec}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}
+canvas{position:fixed;inset:0;width:100vw;height:100vh;touch-action:none;cursor:grab;display:block}canvas.drag{cursor:grabbing}
+.panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);backdrop-filter:blur(6px)}
+#bar{top:10px;left:10px;display:flex;align-items:center;gap:6px;padding:6px;flex-wrap:wrap;max-width:calc(100vw - 340px)}body.noleg #bar{max-width:calc(100vw - 20px)}
+#bar.min .full{display:none}
+button,select,input{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:5px 9px}
+button{cursor:pointer}button:hover{border-color:var(--acc2)}button.on{outline:2px solid var(--acc);outline-offset:-2px}
+input[type=number]{width:62px}.sep{width:1px;height:22px;background:var(--line)}.t{font-weight:600;padding:0 4px}
+nav a{color:var(--acc2);margin:0 4px;font-size:13px}
+#leg{top:10px;right:10px;bottom:46px;width:300px;display:flex;flex-direction:column;transition:transform .2s}
+#leg.hide{transform:translateX(calc(100% + 20px))}
+#legHead{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+#legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:4px 6px;flex:1}
+.row{display:grid;grid-template-columns:26px 22px 26px 1fr;gap:6px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer}
+.row:hover{background:rgba(127,127,127,.15)}.row.on{outline:2px solid var(--acc)}
+.row .sw{width:20px;height:20px;border-radius:4px;border:1px solid rgba(127,127,127,.6)}.row img{width:24px;height:24px;background:#fff;border-radius:4px;padding:1px}
+.row small{color:var(--mut)}.mm{color:var(--acc)}.nr{font-variant-numeric:tabular-nums;text-align:right;color:var(--mut)}
+#legTab{top:50%;right:10px;padding:10px 6px;writing-mode:vertical-rl;display:none;cursor:pointer}
+#leg.hide~#legTab{display:block}
+#status{left:10px;bottom:10px;padding:6px 12px;font-size:13px;color:var(--mut);max-width:calc(100vw - 20px)}#status b{color:var(--fg)}
+#tip{position:fixed;pointer-events:none;display:none;padding:6px 9px;font-size:13px;border-radius:8px;z-index:5}
+#help{display:none;top:60px;left:10px;padding:10px 14px;font-size:13px}#help.show{display:block}kbd{border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--btn)}
+@media (max-width:700px){#leg{width:calc(100vw - 20px);top:auto;height:45vh}}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div id="bar" class="panel">
+ <button id="minBtn" title="Collapse / expand toolbar">☰</button><span class="t">Deer chart</span>
+ <span class="full sep"></span>
+ <span class="full"><button data-mode="sym" class="on" title="Symbols only (C)">Symbols</button><button data-mode="col" title="Colours + symbols (C)">Colours</button></span>
+ <span class="full sep"></span>
+ <span class="full"><button id="zOut" title="Zoom out (−)">−</button><button id="fitBtn" title="Fit chart (0)">Fit</button><button id="zIn" title="Zoom in (+)">+</button></span>
+ <span class="full sep"></span>
+ <label class="full"><input type="checkbox" id="lowChk"> Low confidence</label>
+ <span class="full">Row <input id="gr" type="number" min="1"> Col <input id="gc" type="number" min="1"> <button id="goBtn">Go</button></span>
+ <span class="full sep"></span>
+ <button class="full" id="legBtn" title="Legend (L)">Legend</button>
+ <button class="full" id="themeBtn" title="Light / dark (T)">Light</button>
+ <button class="full" id="fsBtn" title="Fullscreen (F)">⛶ Fullscreen</button>
+ <button class="full" id="helpBtn" title="Keyboard and touch help (?)">?</button>
+ <nav class="full"><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
+</div>
+<div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
+<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · <kbd>C</kbd> colours/symbols · <kbd>+</kbd>/<kbd>−</kbd> zoom · <kbd>0</kbd> fit · arrow keys pan · <kbd>Esc</kbd> clear highlight</div>
+<div id="leg" class="panel"><div id="legHead"><b>Legend</b><input id="legFilter" placeholder="Filter nr or name"><button id="legClose" title="Hide legend (L)">×</button></div><div id="legList"></div></div>
+<div id="legTab" class="panel" title="Show legend (L)">Legend</div>
+<div id="status" class="panel">Loading…</div><div id="tip" class="panel"></div>
 <script type="module">
-import {start,keyMap,loadImages,getCorr} from './js/bundle.js';
+import {start,keyMap,getCorr} from './js/bundle.js';
 import {loadSymbols,symbolBitmap,symUrl} from './js/symbols.js';
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),stage=document.getElementById('stage'),tip=document.getElementById('tip');
-let grey={},B=null,K={},G={},grid=null,mode='sym',hi=null,showLow=false,lowSet=new Set(),view={s:14,x:40,y:40};
-function resize(){cv.width=stage.clientWidth;cv.height=stage.clientHeight;draw();}addEventListener('resize',resize);
+const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d'),tip=$('tip'),st=$('status');
+const MINPX=2.5,MAXPX=90;
+let B=null,K={},grid=null,R=0,C=0,mode='sym',hi=null,showLow=false,lowSet=new Set(),dpr=1;
+let view={s:8,x:0,y:0},target=null,raf=0;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let TH={};function theme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('deerchart:theme',t)}catch(e){}
+  $('themeBtn').textContent=t==='dark'?'Light':'Dark';TH={bg:css('--bg'),cell:css('--cell'),sym:css('--sym'),grid:css('--grid'),grid10:css('--grid10'),acc:css('--acc'),acc2:css('--acc2'),fg:css('--fg'),mut:css('--mut')};chart=null;draw();}
 function lum(h){const n=parseInt(h.slice(1),16);return 0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255);}
-function draw(){ctx.fillStyle='#fafafa';ctx.fillRect(0,0,cv.width,cv.height);if(!B)return;
-  const {rows,cols}=B.grid,s=view.s;const c0=Math.max(0,Math.floor(-view.x/s)),c1=Math.min(cols,Math.ceil((cv.width-view.x)/s)),r0=Math.max(0,Math.floor(-view.y/s)),r1=Math.min(rows,Math.ceil((cv.height-view.y)/s));
-  for(let r=r0;r<r1;r++)for(let c=c0;c<c1;c++){const nr=grid[r*cols+c],k=K[nr],x=view.x+c*s,y=view.y+r*s;
-    const fade=hi!==null&&nr!==hi;ctx.globalAlpha=fade?0.15:1;
-    if(mode==='col'){ctx.fillStyle=k?k.hex:'#fff';ctx.fillRect(x,y,s,s);}else{ctx.fillStyle=s>=6?'#fff':(grey[nr]||'#fff');ctx.fillRect(x,y,s,s);}
-    if(s>=6){const sz=s*0.86,g=symbolBitmap(nr,sz,mode==='col'&&k&&lum(k.hex)<110?'#fff':'#000');ctx.drawImage(g,x+(s-sz)/2,y+(s-sz)/2,sz,sz);}
-  }
-  ctx.globalAlpha=1;
-  ctx.strokeStyle='#555';for(let c=c0;c<=c1;c++){const bold=c%10===0;if(!bold&&s<6)continue;ctx.lineWidth=bold?2:0.5;ctx.beginPath();ctx.moveTo(view.x+c*s,view.y+r0*s);ctx.lineTo(view.x+c*s,view.y+r1*s);ctx.stroke();}
-  for(let r=r0;r<=r1;r++){const bold=r%10===0;if(!bold&&s<6)continue;ctx.lineWidth=bold?2:0.5;ctx.beginPath();ctx.moveTo(view.x+c0*s,view.y+r*s);ctx.lineTo(view.x+c1*s,view.y+r*s);ctx.stroke();}
-  if(hi!==null){ctx.strokeStyle='#0072B2';ctx.lineWidth=2;for(let r=r0;r<r1;r++)for(let c=c0;c<c1;c++)if(grid[r*cols+c]===hi)ctx.strokeRect(view.x+c*s+1,view.y+r*s+1,s-2,s-2);}
-  if(showLow){ctx.strokeStyle='#E69F00';ctx.lineWidth=Math.max(2,s/6);for(const v of lowSet){const r=Math.floor(v/cols),c=v%cols;if(r>=r0&&r<r1&&c>=c0&&c<c1)ctx.strokeRect(view.x+c*s+1,view.y+r*s+1,s-2,s-2);}}
-  ctx.fillStyle='#000';ctx.font='12px system-ui';ctx.fillRect(0,0,0,0);
-  ctx.fillStyle='rgba(250,250,250,0.9)';ctx.fillRect(0,0,cv.width,16);ctx.fillRect(0,0,30,cv.height);ctx.fillStyle='#000';
-  for(let c=Math.ceil(c0/10)*10;c<=c1;c+=10)if(c>0)ctx.fillText(c,view.x+c*s-8,12);
-  for(let r=Math.ceil(r0/10)*10;r<=r1;r+=10)if(r>0)ctx.fillText(r,2,view.y+r*s+4);
+function symCol(k){return mode==='col'?(lum(k.hex)<120?'#fff':'#000'):TH.sym;}
+// ---- low zoom: whole chart pre-rendered at an integer pixel pitch, so symbols stay visible and crisp
+let chart=null;
+function chartBitmap(px){const key=[px,mode,hi,TH.cell,TH.sym].join('|');if(chart&&chart.key===key)return chart.c;
+  const c=chart&&chart.c.width===C*px?chart.c:document.createElement('canvas');c.width=C*px;c.height=R*px;const x=c.getContext('2d');
+  const sz=mode==='col'?Math.max(2,Math.round(px*(px>=6?0.8:0.67))):(px>=5?Math.round(px*0.86):px),o=Math.floor((px-sz)/2);
+  for(let r=0;r<R;r++)for(let q=0;q<C;q++){const nr=grid[r*C+q],k=K[nr];x.globalAlpha=hi!==null&&nr!==hi?0.18:1;
+    x.fillStyle=mode==='col'&&k?k.hex:TH.cell;x.fillRect(q*px,r*px,px,px);if(k)x.drawImage(symbolBitmapRaw(nr,sz,symCol(k)),q*px+o,r*px+o);}
+  chart={key,c};return c;}
+const RAW=new Map();function symbolBitmapRaw(nr,px,col){const k=nr+'|'+px+'|'+col;let c=RAW.get(k);if(c)return c;
+  c=document.createElement('canvas');c.width=c.height=px;const x=c.getContext('2d');const b=symbolBitmap(nr,px/dpr,col);x.drawImage(b,0,0,px,px);RAW.set(k,c);return c;}
+function draw(){if(raf)return;raf=requestAnimationFrame(render);}
+let saveT=0;function saveNow(){if(!B)return;const v=target||view;try{localStorage.setItem('deerchart:view',JSON.stringify({s:v.s,x:v.x,y:v.y,hi,mode,low:showLow,leg:!$('leg').classList.contains('hide'),w:innerWidth,h:innerHeight}))}catch(e){}}
+function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,250);}addEventListener('pagehide',saveNow);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow();});
+function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-view.s)*k;view.x+=(target.x-view.x)*k;view.y+=(target.y-view.y)*k;
+    if(Math.abs(target.s-view.s)<0.01*target.s&&Math.abs(target.x-view.x)<0.5&&Math.abs(target.y-view.y)<0.5){view={...target};target=null;}else draw();}
+  const W=cv.width,H=cv.height;ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=TH.bg;ctx.fillRect(0,0,W,H);if(!B)return;
+  const s=view.s*dpr,ox=view.x*dpr,oy=view.y*dpr;
+  const c0=Math.max(0,Math.floor(-ox/s)),c1=Math.min(C,Math.ceil((W-ox)/s)),r0=Math.max(0,Math.floor(-oy/s)),r1=Math.min(R,Math.ceil((H-oy)/s));
+  if(c1<=c0||r1<=r0)return;
+  if(s<14){const px=[3,4,6,9,14].find(v=>v>=s)||14;const bm=chartBitmap(px);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.drawImage(bm,c0*px,r0*px,(c1-c0)*px,(r1-r0)*px,ox+c0*s,oy+r0*s,(c1-c0)*s,(r1-r0)*s);}
+  else{const sz=Math.round(s*0.86);for(let r=r0;r<r1;r++)for(let q=c0;q<c1;q++){const nr=grid[r*C+q],k=K[nr],x=Math.round(ox+q*s),y=Math.round(oy+r*s),w=Math.round(ox+(q+1)*s)-x;
+      ctx.globalAlpha=hi!==null&&nr!==hi?0.18:1;ctx.fillStyle=mode==='col'&&k?k.hex:TH.cell;ctx.fillRect(x,y,w,w);
+      if(k)ctx.drawImage(symbolBitmapRaw(nr,sz,symCol(k)),x+Math.round((w-sz)/2),y+Math.round((w-sz)/2));}
+    ctx.globalAlpha=1;}
+  // grid: fine lines once cells are big enough, bold every 10
+  ctx.globalAlpha=1;const line=(v,horiz,colr,lw)=>{ctx.strokeStyle=colr;ctx.lineWidth=lw;ctx.beginPath();if(horiz){const y=Math.round(oy+v*s)+.5;ctx.moveTo(ox+c0*s,y);ctx.lineTo(ox+c1*s,y);}else{const x=Math.round(ox+v*s)+.5;ctx.moveTo(x,oy+r0*s);ctx.lineTo(x,oy+r1*s);}ctx.stroke();};
+  if(s>=10){for(let q=c0;q<=c1;q++)if(q%10)line(q,false,TH.grid,1);for(let r=r0;r<=r1;r++)if(r%10)line(r,true,TH.grid,1);}
+  const bw=Math.max(1,Math.min(2.5,s/6))*Math.min(dpr,2);
+  for(let q=Math.ceil(c0/10)*10;q<=c1;q+=10)line(q,false,TH.grid10,bw);for(let r=Math.ceil(r0/10)*10;r<=r1;r+=10)line(r,true,TH.grid10,bw);
+  if(hi!==null&&s>=6){ctx.strokeStyle=TH.acc;ctx.lineWidth=Math.max(1.5,s/10);for(let r=r0;r<r1;r++)for(let q=c0;q<c1;q++)if(grid[r*C+q]===hi)ctx.strokeRect(ox+q*s+1,oy+r*s+1,s-2,s-2);}
+  if(showLow){ctx.strokeStyle=TH.acc2;ctx.lineWidth=Math.max(2*dpr,s/6);for(const v of lowSet){const r=(v/C)|0,q=v%C;if(r>=r0&&r<r1&&q>=c0&&q<c1)ctx.strokeRect(ox+q*s+1,oy+r*s+1,s-2,s-2);}}
+  if(mark){ctx.strokeStyle=TH.acc;ctx.lineWidth=3*dpr;ctx.strokeRect(ox+(mark.c)*s-3*dpr,oy+(mark.r)*s-3*dpr,s+6*dpr,s+6*dpr);}
+  // rulers
+  const fs=11*dpr;ctx.font=`${fs}px system-ui`;ctx.fillStyle=TH.bg;ctx.globalAlpha=.85;ctx.fillRect(0,H-0,0,0);ctx.globalAlpha=1;ctx.fillStyle=TH.mut;
+  const step=s*10<28*dpr?50:10;ctx.textAlign='center';const ty=Math.max(fs+2,Math.min(H-4,oy-4));
+  for(let q=Math.ceil(c0/step)*step;q<=c1;q+=step)if(q>0)ctx.fillText(q,ox+q*s,ty);
+  ctx.textAlign='right';const tx=Math.max(26*dpr,Math.min(W-4,ox-4));
+  for(let r=Math.ceil(r0/step)*step;r<=r1;r+=step)if(r>0)ctx.fillText(r,tx,oy+r*s+fs/3);
 }
-function counts(){const n={};grid.forEach(v=>n[v]=(n[v]||0)+1);return n;}
-function legend(){const n=counts();const el=document.getElementById('legend');el.innerHTML='';
-  B.key.forEach(k=>{const d=document.createElement('div');d.className='legend-row'+(hi===k.nr?' on':'');const got=n[k.nr]||0,diff=got-k.count;
-    d.innerHTML=`<span class="mono">${k.nr}</span><span class="sw" style="background:${k.hex}"></span><img src="${symUrl(k.nr)}"><span>${k.symbol}${k.code?' · '+k.code:''}<br><small>key ${k.count} · chart ${got}${diff?` <span class="mismatch">(${diff>0?'+':''}${diff})</span>`:' ✓'}</small></span>`;
-    d.onclick=()=>{hi=hi===k.nr?null:k.nr;legend();draw();};el.appendChild(d);});}
-async function onLoad(b){B=b;K=keyMap(b);G=await loadImages(b.glyphs);await loadSymbols();grey={};for(const k of b.key){const g=symbolBitmap(k.nr,24),x=document.createElement('canvas').getContext('2d',{willReadFrequently:true});x.canvas.width=g.width;x.canvas.height=g.height;x.drawImage(g,0,0);const a=x.getImageData(0,0,g.width,g.height).data;let ink=0;for(let i=3;i<a.length;i+=4)ink+=a[i];ink/=255*a.length/4;const v=Math.round(255*(1-Math.min(1,ink*1.6)));grey[k.nr]=`rgb(${v},${v},${v})`;}
-  grid=Int16Array.from(b.grid.nr);const corr=getCorr();let nc=0;for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*b.grid.cols+(c-1)]=v;nc++;}
-  lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*b.grid.cols+(c-1)));
-  document.getElementById('info').innerHTML=`<b>${b.meta?.title||''}</b><br>${b.grid.cols}×${b.grid.rows} stitches · ${b.key.length} colours<br>${b.grid.low?.length||0} low-confidence cells, ${nc} corrected in Review`;
-  view.s=Math.max(4,Math.min(20,Math.floor((stage.clientWidth-50)/b.grid.cols)));view.x=40;view.y=24;hi=null;legend();resize();}
-document.querySelectorAll('[data-mode]').forEach(bt=>bt.onclick=()=>{mode=bt.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('sel',x===bt));draw();});
-document.getElementById('lowChk').onchange=e=>{showLow=e.target.checked;draw();};
-document.getElementById('goBtn').onclick=()=>{const r=+gr.value,c=+gc.value;if(!B||!r||!c)return;view.s=Math.max(view.s,24);view.x=cv.width/2-(c-0.5)*view.s;view.y=cv.height/2-(r-0.5)*view.s;draw();
-  const s=view.s;ctx.strokeStyle='#0072B2';ctx.lineWidth=4;ctx.strokeRect(view.x+(c-1)*s-3,view.y+(r-1)*s-3,s+6,s+6);};
-cv.addEventListener('wheel',e=>{e.preventDefault();const f=e.deltaY<0?1.15:1/1.15,ns=Math.min(80,Math.max(1.5,view.s*f));const mx=e.offsetX,my=e.offsetY;view.x=mx-(mx-view.x)*ns/view.s;view.y=my-(my-view.y)*ns/view.s;view.s=ns;draw();},{passive:false});
-let drag=null;cv.onmousedown=e=>drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y};addEventListener('mouseup',()=>drag=null);
-cv.onmousemove=e=>{if(drag){view.x=drag.vx+e.clientX-drag.x;view.y=drag.vy+e.clientY-drag.y;draw();tip.style.display='none';return;}
-  if(!B)return;const c=Math.floor((e.offsetX-view.x)/view.s),r=Math.floor((e.offsetY-view.y)/view.s);
-  if(r<0||c<0||r>=B.grid.rows||c>=B.grid.cols){tip.style.display='none';return;}
-  const nr=grid[r*B.grid.cols+c],k=K[nr],cf=B.grid.conf?B.grid.conf[r*B.grid.cols+c]:null;
-  tip.innerHTML=`Row ${r+1}, col ${c+1}<br>#${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;tip.style.left=(e.offsetX+14)+'px';tip.style.top=(e.offsetY+14)+'px';tip.style.display='block';};
-cv.onmouseleave=()=>tip.style.display='none';
+let mark=null;
+function resize(){dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();chart=null;draw();}
+addEventListener('resize',resize);
+function clampS(s){return Math.min(MAXPX,Math.max(MINPX,s));}
+function zoomAt(f,mx,my,smooth=true){const b=target||view,ns=clampS(b.s*f);const t={s:ns,x:mx-(mx-b.x)*ns/b.s,y:my-(my-b.y)*ns/b.s};if(smooth){target=t;}else{view=t;target=null;}draw();}
+function fit(smooth=true){if(!B)return;const legW=$('leg').classList.contains('hide')||innerWidth<700?0:320;const aw=innerWidth-legW-40,ah=innerHeight-110;
+  const s=clampS(Math.min(aw/C,ah/R));const t={s,x:20+(aw-C*s)/2,y:70+(ah-R*s)/2};if(smooth)target=t;else{view=t;target=null;}draw();}
+function legend(){const n={};grid.forEach(v=>n[v]=(n[v]||0)+1);const f=$('legFilter').value.trim().toLowerCase();const el=$('legList');el.innerHTML='';
+  for(const k of B.key){if(f&&!(String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f)))continue;
+    const got=n[k.nr]||0,d=got-k.count,row=document.createElement('div');row.className='row'+(hi===k.nr?' on':'');
+    row.innerHTML=`<span class="nr">${k.nr}</span><span class="sw" style="background:${k.hex}"></span><img alt="" src="${symUrl(k.nr)}"><span>${k.symbol}${k.code?' · '+k.code:''}<br><small>key ${k.count} · chart ${got}${d?` <span class="mm">(${d>0?'+':''}${d})</span>`:' ✓'}</small></span>`;
+    row.onclick=()=>setHi(hi===k.nr?null:k.nr);el.appendChild(row);}}
+function setHi(v){hi=v;chart=null;legend();status();draw();}
+function status(){if(!B)return;const k=hi!==null?K[hi]:null;st.innerHTML=`<b>${B.meta?.title||'Chart'}</b> · ${C}×${R} stitches · ${B.key.length} colours`+(k?` · highlighting <b>#${k.nr} ${k.symbol}</b> (Esc to clear)`:'')+` · <span id="zl">${Math.round(view.s*10)/10}px/stitch</span>`;}
+function cellAt(x,y){const q=Math.floor((x-view.x)/view.s),r=Math.floor((y-view.y)/view.s);return r>=0&&q>=0&&r<R&&q<C?{r,q}:null;}
+function info(cell){const nr=grid[cell.r*C+cell.q],k=K[nr],cf=B.grid.conf?B.grid.conf[cell.r*C+cell.q]:null;
+  return `Row ${cell.r+1}, col ${cell.q+1}<br><span style="display:inline-block;width:11px;height:11px;border:1px solid #888;background:${k?.hex}"></span> #${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;}
+async function onLoad(b){B=b;K=keyMap(b);R=b.grid.rows;C=b.grid.cols;await loadSymbols();
+  grid=Int16Array.from(b.grid.nr);const corr=getCorr();for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*C+(c-1)]=v;}
+  lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*C+(c-1)));$('gr').max=R;$('gc').max=C;
+  legend();resize();
+  let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'))}catch(e){}
+  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};if(sv.mode)setMode(sv.mode);if(K[sv.hi])hi=sv.hi;if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();}else fit(false);
+  status();draw();}
+// ---- input: mouse, wheel, touch (pointer events with pinch)
+const P=new Map();let pan=null,pinch=null,moved=false,lastTap=0;
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);P.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;target=null;
+  if(P.size===1)pan={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y};
+  if(P.size===2){const [a,b]=[...P.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2,v:{...view}};pan=null;}cv.classList.add('drag');});
+cv.addEventListener('pointermove',e=>{if(P.has(e.pointerId))P.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinch&&P.size===2){const [a,b]=[...P.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,ns=clampS(pinch.v.s*d/pinch.d);
+    view={s:ns,x:mx-(pinch.mx-pinch.v.x)*ns/pinch.v.s,y:my-(pinch.my-pinch.v.y)*ns/pinch.v.s};moved=true;draw();status();return;}
+  if(pan){const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;view.x=pan.vx+dx;view.y=pan.vy+dy;draw();tip.style.display='none';return;}
+  if(e.pointerType==='mouse'&&B){const c=cellAt(e.clientX,e.clientY);if(!c){tip.style.display='none';return;}tip.innerHTML=info(c);
+    tip.style.left=Math.min(innerWidth-200,e.clientX+16)+'px';tip.style.top=Math.min(innerHeight-80,e.clientY+16)+'px';tip.style.display='block';}});
+const up=e=>{P.delete(e.pointerId);if(P.size<2)pinch=null;if(P.size===1){const [a]=[...P.values()];pan={x:a.x,y:a.y,vx:view.x,vy:view.y};}
+  if(P.size===0){pan=null;cv.classList.remove('drag');
+    if(!moved&&B){const now=Date.now();if(now-lastTap<300){zoomAt(2,e.clientX,e.clientY);lastTap=0;}else{lastTap=now;const c=cellAt(e.clientX,e.clientY);if(c&&e.pointerType!=='mouse')st.innerHTML=info(c).replace(/<br>/g,' · ');}}}};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('pointerleave',()=>tip.style.display='none');
+cv.addEventListener('wheel',e=>{e.preventDefault();const dz=e.ctrlKey?e.deltaY*3:e.deltaY;zoomAt(Math.exp(-dz*0.0022),e.clientX,e.clientY);setTimeout(status,250);},{passive:false});
+// ---- controls
+document.querySelectorAll('[data-mode]').forEach(bt=>bt.onclick=()=>setMode(bt.dataset.mode));
+function setMode(m){mode=m;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x.dataset.mode===m));chart=null;draw();}
+$('zIn').onclick=()=>zoomAt(1.6,innerWidth/2,innerHeight/2);$('zOut').onclick=()=>zoomAt(1/1.6,innerWidth/2,innerHeight/2);$('fitBtn').onclick=()=>fit();
+$('lowChk').onchange=e=>{showLow=e.target.checked;draw();};
+$('goBtn').onclick=()=>{const r=+$('gr').value,c=+$('gc').value;if(!B||!(r>=1&&r<=R&&c>=1&&c<=C))return;const s=Math.max(view.s,28);
+  mark={r:r-1,c:c-1};target={s,x:innerWidth/2-(c-0.5)*s,y:innerHeight/2-(r-0.5)*s};draw();setTimeout(()=>{mark=null;draw();},2500);};
+['gr','gc'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').click();}));
+const togLeg=()=>{$('leg').classList.toggle('hide');document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
+$('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('legFilter').oninput=legend;
+$('themeBtn').onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
+const fsToggle=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{});};
+$('fsBtn').onclick=fsToggle;document.addEventListener('fullscreenchange',()=>{$('fsBtn').classList.toggle('on',!!document.fullscreenElement);});
+$('minBtn').onclick=()=>$('bar').classList.toggle('min');$('helpBtn').onclick=()=>$('help').classList.toggle('show');
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
+  if(k==='f'||k==='F')fsToggle();else if(k==='l'||k==='L')togLeg();else if(k==='t'||k==='T')$('themeBtn').click();
+  else if(k==='c'||k==='C')setMode(mode==='sym'?'col':'sym');else if(k==='+'||k==='=')$('zIn').click();else if(k==='-'||k==='_')$('zOut').click();
+  else if(k==='0')fit();else if(k==='Escape'){setHi(null);$('help').classList.remove('show');}else if(k==='?')$('helpBtn').click();
+  else if(k.startsWith('Arrow')){const d=120,b=target||view;target={...b,x:b.x+(k==='ArrowLeft'?d:k==='ArrowRight'?-d:0),y:b.y+(k==='ArrowUp'?d:k==='ArrowDown'?-d:0)};draw();}else return;e.preventDefault();});
+let t0='dark';try{t0=localStorage.getItem('deerchart:theme')||'dark'}catch(e){}theme(t0);$('legBtn').classList.add('on');
+if(innerWidth<700)$('leg').classList.add('hide');
 start(onLoad);resize();
 </script></body></html>
