@@ -12,10 +12,13 @@ button,select,input{font:inherit;color:var(--fg);background:var(--btn);border:1p
 button{cursor:pointer}button:hover{border-color:var(--acc2)}button.on{outline:2px solid var(--acc);outline-offset:-2px}
 input[type=number]{width:62px}.sep{width:1px;height:22px;background:var(--line)}.t{font-weight:600;padding:0 4px}
 nav a{color:var(--acc2);margin:0 4px;font-size:13px}
-#leg{top:10px;right:10px;bottom:46px;width:300px;display:flex;flex-direction:column;transition:transform .2s}
+#leg{top:10px;right:10px;bottom:46px;width:268px;display:flex;flex-direction:column;transition:transform .2s}
 #leg.hide{transform:translateX(calc(100% + 20px))}
 #legHead{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
-#legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:4px 6px;flex:1}
+#legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:8px;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;align-content:start}
+#selBar{padding:6px 10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px}#selBar button{padding:2px 8px;font-size:12px}#selSum{width:100%;color:var(--mut)}
+.chip{position:relative;padding:3px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:7px;min-width:0}.chip img{width:26px;height:26px;background:#fff;border-radius:4px;padding:1px}.chip .cn{font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut)}.chip .cs{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px}
+.chip.on{outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:var(--fg);font-weight:700}
 .row{display:grid;grid-template-columns:26px 22px 26px 1fr;gap:6px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer}
 .row:hover{background:rgba(127,127,127,.15)}.row.on{outline:2px solid var(--acc)}
 .row .sw{width:20px;height:20px;border-radius:4px;border:1px solid rgba(127,127,127,.6)}.row img{width:24px;height:24px;background:#fff;border-radius:4px;padding:1px}
@@ -46,7 +49,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 </div>
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
 <kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · <kbd>C</kbd> colours/symbols · <kbd>+</kbd>/<kbd>−</kbd> zoom · <kbd>0</kbd> fit · arrow keys pan · <kbd>Esc</kbd> clear highlight</div>
-<div id="leg" class="panel"><div id="legHead"><b>Legend</b><input id="legFilter" placeholder="Filter nr or name"><button id="legClose" title="Hide legend (L)">×</button></div><div id="legList"></div></div>
+<div id="leg" class="panel"><div id="legHead"><b>Legend</b><input id="legFilter" placeholder="Filter nr or name"><button id="legClose" title="Hide legend (L)">×</button></div><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips matching the filter">Select shown</button><span id="selSum"></span></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" class="panel">Loading…</div><div id="tip" class="panel"></div>
 <script type="module">
@@ -54,25 +57,29 @@ import {start,keyMap,getCorr} from './js/bundle.js';
 import {loadSymbols,symbolBitmap,symUrl} from './js/symbols.js';
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d'),tip=$('tip'),st=$('status');
 const MINPX=2.5,MAXPX=90;
-let B=null,K={},grid=null,R=0,C=0,mode='sym',hi=null,showLow=false,lowSet=new Set(),dpr=1;
+let B=null,K={},grid=null,R=0,C=0,mode='sym',sel=new Set(),CNT={},showLow=false,lowSet=new Set(),dpr=1;
 let view={s:8,x:0,y:0},target=null,raf=0;
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 let TH={};function theme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('deerchart:theme',t)}catch(e){}
   $('themeBtn').textContent=t==='dark'?'Light':'Dark';TH={bg:css('--bg'),cell:css('--cell'),sym:css('--sym'),grid:css('--grid'),grid10:css('--grid10'),acc:css('--acc'),acc2:css('--acc2'),fg:css('--fg'),mut:css('--mut')};chart=null;draw();}
 function lum(h){const n=parseInt(h.slice(1),16);return 0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255);}
-function symCol(k){return mode==='col'?(lum(k.hex)<120?'#fff':'#000'):TH.sym;}
+const isOn=nr=>!sel.size||sel.has(nr);
+// unselected cells: desaturated + dimmed swatch, symbol still drawn in a muted tone
+function greyOf(h){const l=lum(h),dark=document.documentElement.dataset.theme==='dark',v=Math.round(dark?34+l*0.16:212+l*0.12);return `rgb(${v},${v},${v})`;}
+function cellFill(k){if(!k)return TH.cell;if(!isOn(k.nr))return mode==='col'?greyOf(k.hex):TH.cell;return mode==='col'?k.hex:TH.cell;}
+function symCol(k){if(!isOn(k.nr))return document.documentElement.dataset.theme==='dark'?'#5f646c':'#a3a3a3';return mode==='col'?(lum(k.hex)<120?'#fff':'#000'):TH.sym;}
 // ---- low zoom: whole chart pre-rendered at an integer pixel pitch, so symbols stay visible and crisp
 let chart=null;
-function chartBitmap(px){const key=[px,mode,hi,TH.cell,TH.sym].join('|');if(chart&&chart.key===key)return chart.c;
+function chartBitmap(px){const key=[px,mode,[...sel].join(','),TH.cell,TH.sym].join('|');if(chart&&chart.key===key)return chart.c;
   const c=chart&&chart.c.width===C*px?chart.c:document.createElement('canvas');c.width=C*px;c.height=R*px;const x=c.getContext('2d');
   const sz=mode==='col'?Math.max(2,Math.round(px*(px>=6?0.8:0.67))):(px>=5?Math.round(px*0.86):px),o=Math.floor((px-sz)/2);
-  for(let r=0;r<R;r++)for(let q=0;q<C;q++){const nr=grid[r*C+q],k=K[nr];x.globalAlpha=hi!==null&&nr!==hi?0.18:1;
-    x.fillStyle=mode==='col'&&k?k.hex:TH.cell;x.fillRect(q*px,r*px,px,px);if(k)x.drawImage(symbolBitmapRaw(nr,sz,symCol(k)),q*px+o,r*px+o);}
+  for(let r=0;r<R;r++)for(let q=0;q<C;q++){const nr=grid[r*C+q],k=K[nr];
+    x.fillStyle=cellFill(k);x.fillRect(q*px,r*px,px,px);if(k)x.drawImage(symbolBitmapRaw(nr,sz,symCol(k)),q*px+o,r*px+o);}
   chart={key,c};return c;}
 const RAW=new Map();function symbolBitmapRaw(nr,px,col){const k=nr+'|'+px+'|'+col;let c=RAW.get(k);if(c)return c;
   c=document.createElement('canvas');c.width=c.height=px;const x=c.getContext('2d');const b=symbolBitmap(nr,px/dpr,col);x.drawImage(b,0,0,px,px);RAW.set(k,c);return c;}
 function draw(){if(raf)return;raf=requestAnimationFrame(render);}
-let saveT=0;function saveNow(){if(!B)return;const v=target||view;try{localStorage.setItem('deerchart:view',JSON.stringify({s:v.s,x:v.x,y:v.y,hi,mode,low:showLow,leg:!$('leg').classList.contains('hide'),w:innerWidth,h:innerHeight}))}catch(e){}}
+let saveT=0;function saveNow(){if(!B)return;const v=target||view;try{localStorage.setItem('deerchart:view',JSON.stringify({s:v.s,x:v.x,y:v.y,sel:[...sel],mode,low:showLow,leg:!$('leg').classList.contains('hide'),w:innerWidth,h:innerHeight}))}catch(e){}}
 function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,250);}addEventListener('pagehide',saveNow);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow();});
 function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-view.s)*k;view.x+=(target.x-view.x)*k;view.y+=(target.y-view.y)*k;
     if(Math.abs(target.s-view.s)<0.01*target.s&&Math.abs(target.x-view.x)<0.5&&Math.abs(target.y-view.y)<0.5){view={...target};target=null;}else draw();}
@@ -83,7 +90,7 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
   if(s<14){const px=[3,4,6,9,14].find(v=>v>=s)||14;const bm=chartBitmap(px);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
     ctx.drawImage(bm,c0*px,r0*px,(c1-c0)*px,(r1-r0)*px,ox+c0*s,oy+r0*s,(c1-c0)*s,(r1-r0)*s);}
   else{const sz=Math.round(s*0.86);for(let r=r0;r<r1;r++)for(let q=c0;q<c1;q++){const nr=grid[r*C+q],k=K[nr],x=Math.round(ox+q*s),y=Math.round(oy+r*s),w=Math.round(ox+(q+1)*s)-x;
-      ctx.globalAlpha=hi!==null&&nr!==hi?0.18:1;ctx.fillStyle=mode==='col'&&k?k.hex:TH.cell;ctx.fillRect(x,y,w,w);
+      ctx.fillStyle=cellFill(k);ctx.fillRect(x,y,w,w);
       if(k)ctx.drawImage(symbolBitmapRaw(nr,sz,symCol(k)),x+Math.round((w-sz)/2),y+Math.round((w-sz)/2));}
     ctx.globalAlpha=1;}
   // grid: fine lines once cells are big enough, bold every 10
@@ -91,7 +98,6 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
   if(s>=10){for(let q=c0;q<=c1;q++)if(q%10)line(q,false,TH.grid,1);for(let r=r0;r<=r1;r++)if(r%10)line(r,true,TH.grid,1);}
   const bw=Math.max(1,Math.min(2.5,s/6))*Math.min(dpr,2);
   for(let q=Math.ceil(c0/10)*10;q<=c1;q+=10)line(q,false,TH.grid10,bw);for(let r=Math.ceil(r0/10)*10;r<=r1;r+=10)line(r,true,TH.grid10,bw);
-  if(hi!==null&&s>=6){ctx.strokeStyle=TH.acc;ctx.lineWidth=Math.max(1.5,s/10);for(let r=r0;r<r1;r++)for(let q=c0;q<c1;q++)if(grid[r*C+q]===hi)ctx.strokeRect(ox+q*s+1,oy+r*s+1,s-2,s-2);}
   if(showLow){ctx.strokeStyle=TH.acc2;ctx.lineWidth=Math.max(2*dpr,s/6);for(const v of lowSet){const r=(v/C)|0,q=v%C;if(r>=r0&&r<r1&&q>=c0&&q<c1)ctx.strokeRect(ox+q*s+1,oy+r*s+1,s-2,s-2);}}
   if(mark){ctx.strokeStyle=TH.acc;ctx.lineWidth=3*dpr;ctx.strokeRect(ox+(mark.c)*s-3*dpr,oy+(mark.r)*s-3*dpr,s+6*dpr,s+6*dpr);}
   // rulers
@@ -108,22 +114,25 @@ function clampS(s){return Math.min(MAXPX,Math.max(MINPX,s));}
 function zoomAt(f,mx,my,smooth=true){const b=target||view,ns=clampS(b.s*f);const t={s:ns,x:mx-(mx-b.x)*ns/b.s,y:my-(my-b.y)*ns/b.s};if(smooth){target=t;}else{view=t;target=null;}draw();}
 function fit(smooth=true){if(!B)return;const legW=$('leg').classList.contains('hide')||innerWidth<700?0:320;const aw=innerWidth-legW-40,ah=innerHeight-110;
   const s=clampS(Math.min(aw/C,ah/R));const t={s,x:20+(aw-C*s)/2,y:70+(ah-R*s)/2};if(smooth)target=t;else{view=t;target=null;}draw();}
-function legend(){const n={};grid.forEach(v=>n[v]=(n[v]||0)+1);const f=$('legFilter').value.trim().toLowerCase();const el=$('legList');el.innerHTML='';
+function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('legList');el.innerHTML='';
   for(const k of B.key){if(f&&!(String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f)))continue;
-    const got=n[k.nr]||0,d=got-k.count,row=document.createElement('div');row.className='row'+(hi===k.nr?' on':'');
-    row.innerHTML=`<span class="nr">${k.nr}</span><span class="sw" style="background:${k.hex}"></span><img alt="" src="${symUrl(k.nr)}"><span>${k.symbol}${k.code?' · '+k.code:''}<br><small>key ${k.count} · chart ${got}${d?` <span class="mm">(${d>0?'+':''}${d})</span>`:' ✓'}</small></span>`;
-    row.onclick=()=>setHi(hi===k.nr?null:k.nr);el.appendChild(row);}}
-function setHi(v){hi=v;chart=null;legend();status();draw();}
-function status(){if(!B)return;const k=hi!==null?K[hi]:null;st.innerHTML=`<b>${B.meta?.title||'Chart'}</b> · ${C}×${R} stitches · ${B.key.length} colours`+(k?` · highlighting <b>#${k.nr} ${k.symbol}</b> (Esc to clear)`:'')+` · <span id="zl">${Math.round(view.s*10)/10}px/stitch</span>`;}
+    const got=CNT[k.nr]||0,d=got-k.count,ch=document.createElement('button');ch.className='chip'+(sel.has(k.nr)?' on':'');
+    ch.title=`#${k.nr} ${k.symbol}${k.code?' · '+k.code:''}\n${got} stitches (key ${k.count}${d?`, ${d>0?'+':''}${d}`:''})`;
+    ch.innerHTML=`<img alt="" src="${symUrl(k.nr)}"><span class="cn">${k.nr}</span><span class="cs" style="background:${k.hex}"></span>`;
+    ch.onclick=()=>{sel.has(k.nr)?sel.delete(k.nr):sel.add(k.nr);selChanged();};el.appendChild(ch);}
+  const tot=[...sel].reduce((a,n)=>a+(CNT[n]||0),0);
+  $('selSum').innerHTML=sel.size?`<b>${sel.size}</b> selected · <b>${tot.toLocaleString()}</b> stitches (${(100*tot/(R*C)).toFixed(1)}%)`:`None selected · ${(R*C).toLocaleString()} stitches total`;}
+function selChanged(){chart=null;legend();status();save();draw();}
+function status(){if(!B)return;const tot=[...sel].reduce((a,n)=>a+(CNT[n]||0),0);st.innerHTML=`<b>${B.meta?.title||'Chart'}</b> · ${C}×${R} stitches · ${B.key.length} colours`+(sel.size?` · <b>${sel.size}</b> selected, <b>${tot.toLocaleString()}</b> stitches (Esc to clear)`:'')+` · <span id="zl">${Math.round(view.s*10)/10}px/stitch</span>`;}
 function cellAt(x,y){const q=Math.floor((x-view.x)/view.s),r=Math.floor((y-view.y)/view.s);return r>=0&&q>=0&&r<R&&q<C?{r,q}:null;}
 function info(cell){const nr=grid[cell.r*C+cell.q],k=K[nr],cf=B.grid.conf?B.grid.conf[cell.r*C+cell.q]:null;
   return `Row ${cell.r+1}, col ${cell.q+1}<br><span style="display:inline-block;width:11px;height:11px;border:1px solid #888;background:${k?.hex}"></span> #${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;}
 async function onLoad(b){B=b;K=keyMap(b);R=b.grid.rows;C=b.grid.cols;await loadSymbols();
   grid=Int16Array.from(b.grid.nr);const corr=getCorr();for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*C+(c-1)]=v;}
   lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*C+(c-1)));$('gr').max=R;$('gc').max=C;
-  legend();resize();
+  CNT={};grid.forEach(v=>CNT[v]=(CNT[v]||0)+1);legend();resize();
   let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'))}catch(e){}
-  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};if(sv.mode)setMode(sv.mode);if(K[sv.hi])hi=sv.hi;if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();}else fit(false);
+  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};if(sv.mode)setMode(sv.mode);if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();}else fit(false);
   status();draw();}
 // ---- input: mouse, wheel, touch (pointer events with pinch)
 const P=new Map();let pan=null,pinch=null,moved=false,lastTap=0;
@@ -150,7 +159,7 @@ $('goBtn').onclick=()=>{const r=+$('gr').value,c=+$('gc').value;if(!B||!(r>=1&&r
   mark={r:r-1,c:c-1};target={s,x:innerWidth/2-(c-0.5)*s,y:innerHeight/2-(r-0.5)*s};draw();setTimeout(()=>{mark=null;draw();},2500);};
 ['gr','gc'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').click();}));
 const togLeg=()=>{$('leg').classList.toggle('hide');document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
-$('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('legFilter').oninput=legend;
+$('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('legFilter').oninput=legend;$('selClr').onclick=()=>{sel.clear();selChanged();};$('selInv').onclick=()=>{sel=new Set(B.key.map(k=>k.nr).filter(n=>!sel.has(n)));selChanged();};$('selVis').onclick=()=>{const f=$('legFilter').value.trim().toLowerCase();B.key.forEach(k=>{if(!f||String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f))sel.add(k.nr);});selChanged();};
 $('themeBtn').onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 const fsToggle=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{});};
 $('fsBtn').onclick=fsToggle;document.addEventListener('fullscreenchange',()=>{$('fsBtn').classList.toggle('on',!!document.fullscreenElement);});
@@ -158,7 +167,7 @@ $('minBtn').onclick=()=>$('bar').classList.toggle('min');$('helpBtn').onclick=()
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
   if(k==='f'||k==='F')fsToggle();else if(k==='l'||k==='L')togLeg();else if(k==='t'||k==='T')$('themeBtn').click();
   else if(k==='c'||k==='C')setMode(mode==='sym'?'col':'sym');else if(k==='+'||k==='=')$('zIn').click();else if(k==='-'||k==='_')$('zOut').click();
-  else if(k==='0')fit();else if(k==='Escape'){setHi(null);$('help').classList.remove('show');}else if(k==='?')$('helpBtn').click();
+  else if(k==='0')fit();else if(k==='Escape'){sel.clear();selChanged();$('help').classList.remove('show');}else if(k==='?')$('helpBtn').click();
   else if(k.startsWith('Arrow')){const d=120,b=target||view;target={...b,x:b.x+(k==='ArrowLeft'?d:k==='ArrowRight'?-d:0),y:b.y+(k==='ArrowUp'?d:k==='ArrowDown'?-d:0)};draw();}else return;e.preventDefault();});
 let t0='dark';try{t0=localStorage.getItem('deerchart:theme')||'dark'}catch(e){}theme(t0);$('legBtn').classList.add('on');
 if(innerWidth<700)$('leg').classList.add('hide');
