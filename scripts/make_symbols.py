@@ -69,16 +69,32 @@ def glyph_path(font,ch,mode,target=74):
 def svg_el(e):
   return f'<path d="{e["d"]}" fill="#000" fill-rule="nonzero"/>' if e['mode']=='fill' else f'<path d="{e["d"]}" fill="none" stroke="#000" stroke-width="{e["w"]}" stroke-linecap="round" stroke-linejoin="round"/>'
 if __name__=='__main__':
-  ap=argparse.ArgumentParser(); ap.add_argument('--fonts',default='/usr/share/fonts/truetype/dejavu'); ap.add_argument('--out',default='symbols'); a=ap.parse_args()
+  ap=argparse.ArgumentParser(); ap.add_argument('--fonts',default='/usr/share/fonts/truetype/dejavu'); ap.add_argument('--out',default='symbols'); ap.add_argument('--round',type=int,default=None,help='build design round N (cumulative overrides from symbol_rounds.py); default: active set from PICK'); a=ap.parse_args()
+  import importlib.util; spec=importlib.util.spec_from_file_location('sr',os.path.join(os.path.dirname(os.path.abspath(__file__)),'symbol_rounds.py')); sr=importlib.util.module_from_spec(spec); spec.loader.exec_module(sr)
+  base=(dict(U),dict(C),dict(SIZE))
+  def layer(n):
+    u,c,z=dict(base[0]),dict(base[1]),dict(base[2]); xf={}
+    for i in range(1,n+1):
+      R=sr.ROUNDS.get(i,{})
+      for nr,v in R.get('U',{}).items(): u[nr]=v; c.pop(nr,None)
+      for nr,v in R.get('C',{}).items(): c[nr]=v; u.pop(nr,None)
+      z.update(R.get('SIZE',{})); xf.update(R.get('XF',{}))
+    return u,c,z,dict(xf)
+  if a.round is not None: U,C,SIZE,XF=layer(a.round); PICK={}
+  else: PICK=sr.PICK; LAY={n:layer(n) for n in set(PICK.values())|{max(sr.ROUNDS or [0])}}
   fonts={}; out={}
   for nr in range(1,65):
+    if PICK: U,C,SIZE,XF=LAY[PICK.get(nr,max(sr.ROUNDS or [0]))]
     if nr in U:
       ch,fn,mode=U[nr]; fonts.setdefault(fn,TTFont(os.path.join(a.fonts,fn+'.ttf')))
       out[nr]={'kind':'unicode','char':ch,'codepoint':f'U+{ord(ch):04X}','font':fn,'els':[F(glyph_path(fonts[fn],ch,mode,SIZE.get(nr,74)))]}
     else: out[nr]={'kind':'custom','els':C[nr]}
+    if nr in XF and tuple(XF[nr])!=(1,0,0): out[nr]['t']=[round(float(v),3) for v in XF[nr]]
+    if PICK: out[nr]['round']=PICK.get(nr,max(sr.ROUNDS or [0]))
   os.makedirs(a.out,exist_ok=True); sprite=[]
   for nr,s in out.items():
     body=''.join(svg_el(e) for e in s['els'])
+    if 't' in s: k,tx,ty=s['t']; body=f'<g transform="translate({50-50*k+tx:.2f},{50-50*k+ty:.2f}) scale({k})">{body}</g>'
     open(os.path.join(a.out,f'{nr:02d}.svg'),'w').write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">{body}</svg>\n')
     sprite.append(f'<symbol id="s{nr:02d}" viewBox="0 0 100 100">{body}</symbol>')
   open(os.path.join(a.out,'sprite.svg'),'w').write('<svg xmlns="http://www.w3.org/2000/svg" style="display:none">'+''.join(sprite)+'</svg>\n')
