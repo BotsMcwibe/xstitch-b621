@@ -32,7 +32,7 @@ def write(bundle,out):
   open(os.path.join(out,'bundle.json'),'w').write(js)
   print('wrote',out,'json MB %.1f'%(len(js)/1e6))
 
-def real(work,out,cell=16,tiles=True,cover=None):
+def real(work,out,cell=16,tiles=True,cover=None,reference=None):
   sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); os.chdir(work)
   import pickle,cv2
   key=list(csv.DictReader(open('key.csv')))
@@ -67,11 +67,14 @@ def real(work,out,cell=16,tiles=True,cover=None):
     'glyphs':{str(k):v for k,v in glyphs.items()},
     'grid':{'rows':280,'cols':420,'nr':[int(v) for v in y.ravel()],'conf':[int(round(v*100)) for v in conf.ravel()],'low':[[int(r)+1,int(c)+1] for r,c in np.argwhere(low)]},
     'review':review,'reference':ref}
+  if reference:  # clean full-scene render, aligned to the 420x280 grid (see scripts/align_ref.py)
+    im=Image.open(reference).convert('RGB'); im.save(os.path.join(out,'reference.webp'),'WEBP',quality=92,method=6)
+    bundle['reference_image']={'src':'data/reference.webp','width':im.width,'height':im.height,'box':[0,0,im.width,im.height]}
   if cover:
     im=Image.open(cover).convert('RGB'); im.thumbnail((1200,1200)); bundle['cover']=durl(im,'JPEG',82)
   write(bundle,out)
 
 if __name__=='__main__':
-  ap=argparse.ArgumentParser(); ap.add_argument('--work',default='.'); ap.add_argument('--out',required=True); ap.add_argument('--no-tiles',action='store_true',help='omit scan-derived reference tiles'); ap.add_argument('--cover',help='cover/reference picture to embed')
+  ap=argparse.ArgumentParser(); ap.add_argument('--work',default='.'); ap.add_argument('--out',required=True); ap.add_argument('--no-tiles',action='store_true',help='omit scan-derived reference tiles'); ap.add_argument('--cover',help='cover picture to embed'); ap.add_argument('--reference',help='clean full-scene reference image (saved as reference.webp)')
   a=ap.parse_args(); out=os.path.abspath(a.out)
-  real(a.work,out,tiles=not a.no_tiles,cover=a.cover)
+  real(a.work,out,tiles=not a.no_tiles,cover=a.cover,reference=a.reference)

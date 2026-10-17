@@ -1,32 +1,83 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Compare</title>
-<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Compare with reference</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css">
+<style>.wrap{position:relative;display:inline-block}.wrap canvas{position:absolute;left:0;top:0}#views{padding:8px;overflow:auto;max-height:calc(100vh - 150px)}
+#keytab{font-size:12px}#keytab tr{cursor:pointer}#keytab tr.on{outline:2px solid var(--blue)}#keytab tr.out td{background:#ffe9b3;font-weight:700}
+.cbar{height:12px;width:220px;display:inline-block;vertical-align:middle;border:1px solid #333}</style></head><body>
 <header><b>Compare</b><nav><a href="index.html">Viewer</a><a href="review.html">Review</a><a class="on" href="compare.html">Compare</a></nav>
-<label>Reference: <select id="sel"></select></label><span id="hint"></span></header><div id="statusbar"><span id="status"></span></div>
-<div style="display:flex;gap:12px;padding:8px;align-items:flex-start;flex-wrap:wrap">
-<div><b id="lt">Reference</b><br><canvas id="a"></canvas></div><div><b>Redrawn from the chart data</b><br><canvas id="b"></canvas></div></div>
-<p style="padding:0 8px">Move the mouse over either side: the same spot is marked with a blue box on both.</p>
+<span>View: <button class="btn sel" data-v="side">Side by side</button><button class="btn" data-v="swipe">Swipe</button><button class="btn" data-v="onion">Onion skin</button><button class="btn" data-v="heat">Difference heatmap</button></span>
+<label>Zoom <select id="zoom"><option>2</option><option selected>3</option><option>4</option><option>6</option><option>8</option><option>12</option></select> px/stitch</label>
+<label><input type="checkbox" id="norm" checked> Colour-normalised redraw</label>
+</header><div id="statusbar"><span id="status"></span> <span id="hint"></span></div>
+<main><div id="side" style="width:380px">
+<div id="ctl"></div>
+<p><b>Average difference per key number</b> (ΔE after colour normalisation). Rows with a z-score above 2.5 are marked: the colour there differs most from the reference, which can mean a wrong symbol-to-key mapping or just a poor swatch colour. Click a row to outline that key's stitches in blue.</p>
+<table id="keytab"></table></div>
+<div id="views" style="flex:1"></div></main>
 <script type="module">
 import {start,keyMap,loadImages,getCorr} from './js/bundle.js';
-let B,K,G,grid,refs=[],cur=0,refImg=null;const A=document.getElementById('a'),Bc=document.getElementById('b');
-async function onLoad(b){B=b;K=keyMap(b);G=await loadImages(b.glyphs);grid=Int16Array.from(b.grid.nr);
-  const corr=getCorr();for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*b.grid.cols+c-1]=v;}
-  refs=[];if(b.cover)refs.push({name:'Cover picture vs colour redraw (whole chart)',cover:true,img:b.cover,row0:1,col0:1,rows:b.grid.rows,cols:b.grid.cols});
-  (b.reference||[]).forEach(r=>refs.push({...r,name:`${r.name} (page ${r.page}, rows ${r.row0}-${r.row0+r.rows-1}, cols ${r.col0}-${r.col0+r.cols-1})`}));
-  const sel=document.getElementById('sel');sel.innerHTML=refs.map((r,i)=>`<option value="${i}">${r.name}</option>`).join('');
-  sel.onchange=()=>show(+sel.value);if(refs.length)show(0);else document.getElementById('hint').textContent='This bundle has no reference images.';}
-async function show(i){cur=i;const r=refs[i];refImg=(await loadImages({x:r.img})).x;
-  const maxW=Math.floor((innerWidth-60)/2);const sc=Math.min(1,maxW/refImg.width);A.width=Math.round(refImg.width*sc);A.height=Math.round(refImg.height*sc);Bc.width=A.width;Bc.height=A.height;
-  document.getElementById('lt').textContent=r.cover?'Cover picture (as printed on the key)':'Scan (resampled, one cell per square)';redraw();}
-function lum(h){const n=parseInt(h.slice(1),16);return 0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255);}
-function redraw(mark){const r=refs[cur],a=A.getContext('2d'),b=Bc.getContext('2d');a.drawImage(refImg,0,0,A.width,A.height);
-  const cw=Bc.width/r.cols,ch=Bc.height/r.rows;b.fillStyle='#fff';b.fillRect(0,0,Bc.width,Bc.height);
-  for(let y=0;y<r.rows;y++)for(let x=0;x<r.cols;x++){const nr=grid[(r.row0-1+y)*B.grid.cols+(r.col0-1+x)];
-    if(r.cover){b.fillStyle=K[nr]?K[nr].hex:'#fff';b.fillRect(x*cw,y*ch,Math.ceil(cw),Math.ceil(ch));}
-    else{b.drawImage(G[nr],x*cw+1,y*ch+1,cw-2,ch-2);}}
-  if(!r.cover){b.strokeStyle='#666';for(let x=0;x<=r.cols;x++){b.lineWidth=(r.col0-1+x)%10===0?2:0.4;b.beginPath();b.moveTo(x*cw,0);b.lineTo(x*cw,Bc.height);b.stroke();}
-    for(let y=0;y<=r.rows;y++){b.lineWidth=(r.row0-1+y)%10===0?2:0.4;b.beginPath();b.moveTo(0,y*ch);b.lineTo(Bc.width,y*ch);b.stroke();}}
-  if(mark){const s=r.cover?10:1;for(const c of [a,b]){c.strokeStyle='#0072B2';c.lineWidth=3;c.strokeRect((mark.x-(s>1?s/2:0))*cw,(mark.y-(s>1?s/2:0))*ch,cw*s,ch*s);}
-    document.getElementById('hint').textContent=`Row ${r.row0+mark.y}, col ${r.col0+mark.x}: #${grid[(r.row0-1+mark.y)*B.grid.cols+(r.col0-1+mark.x)]} ${K[grid[(r.row0-1+mark.y)*B.grid.cols+(r.col0-1+mark.x)]]?.symbol||''}`;}}
-for(const c of [A,Bc])c.onmousemove=e=>{const r=refs[cur];if(!r)return;redraw({x:Math.floor(e.offsetX/(c.width/r.cols)),y:Math.floor(e.offsetY/(c.height/r.rows))});};
+const CIV=[[0,32,77],[0,52,110],[57,72,108],[87,92,109],[112,113,115],[138,135,120],[166,157,116],[195,180,104],[225,205,86],[253,231,55]]; // cividis stops
+function civ(t){if(!isFinite(t))t=0;t=Math.max(0,Math.min(1,t))*(CIV.length-1);const i=Math.min(CIV.length-2,Math.floor(t)),f=t-i;return CIV[i].map((v,k)=>Math.round(v+(CIV[i+1][k]-v)*f));}
+const $=id=>document.getElementById(id);
+let B,K,G,grid,R,C,refImg,cellRef,labRef,labChart,labNorm,dE,keyStats,view='side',sel=null,mark=null,Z=3,swipe=0.5,onion=0.5,block=1,dmax=30;
+function hex2rgb(h){const n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];}
+function rgb2lab([r,g,b]){const f=v=>{v/=255;return v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4;};r=f(r);g=f(g);b=f(b);
+  let x=(0.4124*r+0.3576*g+0.1805*b)/0.95047,y=0.2126*r+0.7152*g+0.0722*b,z=(0.0193*r+0.1192*g+0.9505*b)/1.08883;
+  const h=t=>t>0.008856?Math.cbrt(t):7.787*t+16/116;x=h(x);y=h(y);z=h(z);return [116*y-16,500*(x-y),200*(y-z)];}
+function lab2rgb([L,a,b]){let y=(L+16)/116,x=a/500+y,z=y-b/200;const h=t=>t**3>0.008856?t**3:(t-16/116)/7.787;x=h(x)*0.95047;y=h(y);z=h(z)*1.08883;
+  let r=3.2406*x-1.5372*y-0.4986*z,g=-0.9689*x+1.8758*y+0.0415*z,bb=0.0557*x-0.2040*y+1.0570*z;const f=v=>{v=v>0.0031308?1.055*v**(1/2.4)-0.055:12.92*v;return Math.max(0,Math.min(255,Math.round(v*255)));};return [f(r),f(g),f(bb)];}
+function solve(A,b){const n=A.length;const M=A.map((r,i)=>[...r,b[i]]);for(let i=0;i<n;i++){let p=i;for(let j=i+1;j<n;j++)if(Math.abs(M[j][i])>Math.abs(M[p][i]))p=j;[M[i],M[p]]=[M[p],M[i]];
+  for(let j=0;j<n;j++)if(j!==i){const f=M[j][i]/M[i][i];for(let k=i;k<=n;k++)M[j][k]-=f*M[i][k];}}return M.map((r,i)=>r[n]/r[i]);}
+function analyse(){
+  // reference -> per-cell average colour
+  const box=B.reference_image.box,c=document.createElement('canvas');c.width=refImg.width;c.height=refImg.height;const x=c.getContext('2d');x.drawImage(refImg,0,0);
+  const d=x.getImageData(0,0,c.width,c.height).data,sx=(box[2]-box[0])/C,sy=(box[3]-box[1])/R;cellRef=new Array(R*C);
+  for(let r=0;r<R;r++)for(let q=0;q<C;q++){let s=[0,0,0],n=0;const x0=Math.floor(box[0]+q*sx),x1=Math.max(x0+1,Math.floor(box[0]+(q+1)*sx)),y0=Math.floor(box[1]+r*sy),y1=Math.max(y0+1,Math.floor(box[1]+(r+1)*sy));
+    for(let yy=y0;yy<y1;yy++)for(let xx=x0;xx<x1;xx++){const i=(yy*c.width+xx)*4;s[0]+=d[i];s[1]+=d[i+1];s[2]+=d[i+2];n++;}cellRef[r*C+q]=s.map(v=>v/n);}
+  labRef=cellRef.map(rgb2lab);const keyLab={};B.key.forEach(k=>keyLab[k.nr]=rgb2lab(hex2rgb(k.hex)));labChart=Array.from(grid,v=>keyLab[v]);
+  // rough colour normalisation: affine map chart Lab -> reference Lab (least squares)
+  const AtA=[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],Atb=[[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+  for(let i=0;i<labChart.length;i++){const a=[...labChart[i],1];for(let p=0;p<4;p++){for(let q=0;q<4;q++)AtA[p][q]+=a[p]*a[q];for(let o=0;o<3;o++)Atb[o][p]+=a[p]*labRef[i][o];}}
+  const Mx=[0,1,2].map(o=>solve(AtA,Atb[o]));const norm=l=>[0,1,2].map(o=>Mx[o][0]*l[0]+Mx[o][1]*l[1]+Mx[o][2]*l[2]+Mx[o][3]);
+  const normKey={};for(const k in keyLab)normKey[k]=norm(keyLab[k]);labNorm=Array.from(grid,v=>normKey[v]);
+  dE=labNorm.map((l,i)=>Math.hypot(l[0]-labRef[i][0],l[1]-labRef[i][1],l[2]-labRef[i][2]));
+  const acc={};grid.forEach((v,i)=>{(acc[v]??=[]).push(dE[i]);});
+  keyStats=B.key.map(k=>{const a=acc[k.nr]||[];const m=a.reduce((s,v)=>s+v,0)/(a.length||1);return {nr:k.nr,n:a.length,mean:m};});
+  const ms=keyStats.map(s=>s.mean).sort((a,b)=>a-b),med=ms[ms.length>>1],mad=[...ms].map(v=>Math.abs(v-med)).sort((a,b)=>a-b)[ms.length>>1];
+  keyStats.forEach(s=>s.z=(s.mean-med)/(1.4826*mad||1));keyStats.sort((a,b)=>b.mean-a.mean);
+  const all=[...dE].sort((a,b)=>a-b);dmax=Math.ceil(all[Math.floor(all.length*0.98)]);
+  $('hint').textContent=`median ΔE ${all[all.length>>1].toFixed(1)}; heat scale 0–${dmax}`;}
+function table(){$('keytab').innerHTML='<tr><th>nr</th><th></th><th>symbol</th><th>stitches</th><th>mean ΔE</th><th>z</th></tr>'+keyStats.map(s=>{const k=K[s.nr];
+  return `<tr data-nr="${s.nr}" class="${s.z>2.5?'out':''} ${sel===s.nr?'on':''}"><td>${s.nr}</td><td><span class="sw" style="display:inline-block;background:${k.hex}"></span> <img src="${B.glyphs[s.nr]}" width="16" height="16"></td><td style="text-align:left">${k.symbol}</td><td>${s.n}</td><td>${s.mean.toFixed(1)}</td><td>${s.z.toFixed(1)}</td></tr>`;}).join('');
+  $('keytab').querySelectorAll('tr[data-nr]').forEach(tr=>tr.onclick=()=>{const n=+tr.dataset.nr;sel=sel===n?null:n;table();draw();});}
+function chartCanvas(){const c=document.createElement('canvas');c.width=C;c.height=R;const x=c.getContext('2d'),im=x.createImageData(C,R);const useN=$('norm').checked;
+  for(let i=0;i<R*C;i++){const rgb=useN?lab2rgb(labNorm[i]):hex2rgb(K[grid[i]].hex);im.data.set([...rgb,255],i*4);}x.putImageData(im,0,0);return c;}
+function heatCanvas(){const c=document.createElement('canvas');c.width=C;c.height=R;const x=c.getContext('2d'),im=x.createImageData(C,R);
+  for(let r=0;r<R;r+=block)for(let q=0;q<C;q+=block){let s=0,n=0;for(let a=r;a<Math.min(R,r+block);a++)for(let b=q;b<Math.min(C,q+block);b++){s+=dE[a*C+b];n++;}
+    const col=civ(s/n/dmax);for(let a=r;a<Math.min(R,r+block);a++)for(let b=q;b<Math.min(C,q+block);b++)im.data.set([...col,255],(a*C+b)*4);}
+  x.putImageData(im,0,0);return c;}
+let chartC,heatC;
+function draw(){if(!B)return;const W=C*Z,H=R*Z,v=$('views');v.innerHTML='';chartC=chartCanvas();heatC=heatCanvas();
+  const mk=(label,fn)=>{const d=document.createElement('div');d.style.display='inline-block';d.style.margin='0 8px 8px 0';d.innerHTML=`<b>${label}</b><br>`;const cv=document.createElement('canvas');cv.width=W;cv.height=H;d.appendChild(cv);v.appendChild(d);
+    const x=cv.getContext('2d');x.imageSmoothingEnabled=false;fn(x);overlay(x);cv.onmousemove=e=>{mark={c:Math.floor(e.offsetX/Z),r:Math.floor(e.offsetY/Z)};draw();};cv.onmouseleave=()=>{mark=null;};return cv;};
+  const ref=x=>{x.imageSmoothingEnabled=true;const b=B.reference_image.box;x.drawImage(refImg,b[0],b[1],b[2]-b[0],b[3]-b[1],0,0,W,H);x.imageSmoothingEnabled=false;};
+  const ch=x=>x.drawImage(chartC,0,0,W,H);
+  if(view==='side'){mk('Reference',ref);mk('Chart redraw',ch);}
+  else if(view==='swipe'){mk(`Swipe: reference left of the line, chart right (${Math.round(swipe*100)}%)`,x=>{ref(x);x.save();x.beginPath();x.rect(W*swipe,0,W,H);x.clip();ch(x);x.restore();x.fillStyle='#0072B2';x.fillRect(W*swipe-1,0,3,H);});}
+  else if(view==='onion'){mk(`Onion skin: chart over reference at ${Math.round(onion*100)}%`,x=>{ref(x);x.globalAlpha=onion;ch(x);x.globalAlpha=1;});}
+  else{mk(`ΔE heatmap (${block===1?'per stitch':block+'×'+block+' blocks'})`,x=>x.drawImage(heatC,0,0,W,H));mk('Reference',ref);}
+  if(mark&&mark.r>=0&&mark.r<R&&mark.c>=0&&mark.c<C){const i=mark.r*C+mark.c,k=K[grid[i]];$('hint').textContent=`Row ${mark.r+1}, col ${mark.c+1}: #${grid[i]} ${k.symbol} · ΔE ${dE[i].toFixed(1)} · key average ${keyStats.find(s=>s.nr===grid[i]).mean.toFixed(1)}`;}}
+function overlay(x){if(sel!==null){x.strokeStyle='#0072B2';x.lineWidth=Math.max(1,Z/3);for(let i=0;i<R*C;i++)if(grid[i]===sel)x.strokeRect((i%C)*Z,Math.floor(i/C)*Z,Z,Z);}
+  if(mark){x.strokeStyle='#0072B2';x.lineWidth=2;const s=Math.max(Z,10);x.strokeRect(mark.c*Z-(s-Z)/2-2,mark.r*Z-(s-Z)/2-2,s+4,s+4);x.strokeStyle='#E69F00';x.lineWidth=1;x.strokeRect(mark.c*Z-(s-Z)/2-4,mark.r*Z-(s-Z)/2-4,s+8,s+8);}}
+function controls(){const g=CIV.map((c,i)=>`rgb(${c}) ${i/(CIV.length-1)*100}%`).join(',');
+  $('ctl').innerHTML=`<p>Swipe position <input type="range" id="sw" min="0" max="100" value="${swipe*100}"></p><p>Onion-skin opacity <input type="range" id="on" min="0" max="100" value="${onion*100}"></p>
+   <p>Heatmap cells <select id="blk"><option value="1">per stitch</option><option value="5">5×5</option><option value="10">10×10</option></select></p>
+   <p>ΔE 0 <span class="cbar" style="background:linear-gradient(to right,${g})"></span> ${dmax}+ (cividis)</p>`;
+  $('sw').oninput=e=>{swipe=e.target.value/100;draw();};$('on').oninput=e=>{onion=e.target.value/100;draw();};$('blk').onchange=e=>{block=+e.target.value;draw();};}
+async function onLoad(b){B=b;K=keyMap(b);G=await loadImages(b.glyphs);R=b.grid.rows;C=b.grid.cols;grid=Int16Array.from(b.grid.nr);
+  for(const [rc,v] of Object.entries(getCorr())){const [r,c]=rc.split(',').map(Number);grid[(r-1)*C+c-1]=v;}
+  if(!b.reference_image){$('hint').textContent='No reference image in data.';return;}
+  refImg=(await loadImages({x:b.reference_image.src})).x;analyse();controls();table();draw();}
+document.querySelectorAll('[data-v]').forEach(bt=>bt.onclick=()=>{view=bt.dataset.v;document.querySelectorAll('[data-v]').forEach(x=>x.classList.toggle('sel',x===bt));draw();});
+$('zoom').onchange=e=>{Z=+e.target.value;draw();};$('norm').onchange=draw;
 start(onLoad);
 </script></body></html>
