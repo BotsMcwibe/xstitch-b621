@@ -16,7 +16,54 @@ from svgelements import SVG, Shape, Path
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SYMD = os.path.join(ROOT, 'symbols')
-BAD = {'script', 'foreignObject', 'image', 'text', 'tspan', 'iframe', 'object', 'embed', 'style', 'filter'}
+BAD = {'script', 'foreignObject', 'image', 'text', 'tspan', 'iframe', 'object', 'embed', 'filter'}
+CSS_OK = {'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit', 'stroke-dasharray', 'stroke-opacity',
+          'fill-opacity', 'opacity', 'fill-rule', 'clip-rule', 'display', 'visibility'}
+
+def _decls(t):
+    out = []
+    for d in t.split(';'):
+        if ':' not in d: continue
+        k, v = d.split(':', 1); k = k.strip().lower(); v = v.replace('!important', '').strip()
+        if k in CSS_OK and not re.search(r"url\(\s*['\"]?(?!#)|expression\(|javascript:", v, re.I):
+            out.append((k, re.sub(r'px$', '', v) if k in ('stroke-width', 'stroke-miterlimit') else v))
+    return out
+
+def inline_styles(root, warns):
+    """Inline simple class/tag/id CSS rules from <style> (Illustrator exports) as presentation attributes; drop hidden layers."""
+    tag = lambda e: e.tag.split('}')[-1]
+    parent = {c: p for p in root.iter() for c in p}
+    n = 0; sheets = [e for e in root.iter() if tag(e) == 'style']
+    for st in sheets:
+        css = re.sub(r'/\*.*?\*/', '', st.text or '', flags=re.S)
+        for sels, body in re.findall(r'([^{}]+)\{([^}]*)\}', css):
+            ds = _decls(body)
+            for sel in (x.strip() for x in sels.split(',')):
+                m = re.fullmatch(r'([a-zA-Z]+)?((?:\.[\w-]+)*)|#([\w-]+)', sel)
+                if not sel or not m or (not m.group(1) and not m.group(2) and not m.group(3)):
+                    if sel: warns.append(f'ignored CSS selector "{sel}"')
+                    continue
+                cls = [c for c in (m.group(2) or '').split('.') if c]
+                for e in root.iter():
+                    if m.group(3):
+                        ok = e.get('id') == m.group(3)
+                    else:
+                        ok = (not m.group(1) or tag(e) == m.group(1)) and all(c in (e.get('class') or '').split() for c in cls)
+                    if ok:
+                        for k, v in ds: e.set(k, v); n += 1
+        parent[st].remove(st)
+    for e in root.iter():
+        if e.get('style'):
+            for k, v in _decls(e.get('style')): e.set(k, v)
+            del e.attrib['style']
+        if e.get('stroke-width'): e.set('stroke-width', re.sub(r'px$', '', e.get('stroke-width')))
+        e.attrib.pop('class', None)
+    hid = [e for e in root.iter() if e.get('display') == 'none' or e.get('visibility') == 'hidden']
+    for e in hid:
+        if e in parent: parent[e].remove(e)
+    if sheets: warns.append(f'inlined <style> ({n} properties)')
+    if hid: warns.append(f'removed {len(hid)} hidden layer(s)/element(s)')
+    if any(tag(e) in ('clipPath', 'mask') for e in root.iter()): warns.append('uses clipPath/mask: the flattened paths ignore clipping, check the result')
 
 def nr_from_name(name):
     m = re.match(r'^0*(\d{1,2})(?:[-_ .][^/]*)?\.svg$', os.path.basename(name), re.I)
@@ -61,6 +108,8 @@ def flatten(text):
         for a in list(el.attrib):
             if a.lower().startswith('on'):
                 raise ValueError(f'has an event handler attribute {a}')
+    inline_styles(root, warns)
+    for k in ('x', 'y'): root.attrib.pop(k, None)
     vb = (root.get('viewBox') or '').replace(',', ' ').split()
     if vb != ['0', '0', '100', '100']:
         warns.append(f'viewBox {" ".join(vb) or "(none)"} rescaled to 0 0 100 100')
@@ -75,16 +124,23 @@ def flatten(text):
         d = Path(e).d()
         if not d.strip():
             continue
+        light = lambda c: (0.299 * c.red + 0.587 * c.green + 0.114 * c.blue) > 127
         fill = e.fill is not None and e.fill.value is not None and e.fill.alpha > 0
         stroke = e.stroke is not None and e.stroke.value is not None and e.stroke.alpha > 0 and (e.stroke_width or 0) > 0
         if fill:
             el = {'d': d, 'mode': 'fill'}
             if (e.values.get('fill-rule') or '').strip() == 'evenodd':
                 el['rule'] = 'evenodd'
+            if light(e.fill): el['knock'] = True  # white fill: erases the ink below (shows the cell background)
             els.append(el)
         if stroke:
             w = getattr(e, 'implicit_stroke_width', None) or e.stroke_width
-            els.append({'d': d, 'mode': 'stroke', 'w': round(float(w), 2)})
+            el = {'d': d, 'mode': 'stroke', 'w': round(float(w), 2),
+                  'cap': (e.values.get('stroke-linecap') or 'butt').strip(), 'join': (e.values.get('stroke-linejoin') or 'miter').strip()}
+            if el['join'] == 'miter':
+                el['miter'] = float(e.values.get('stroke-miterlimit') or 4)
+            if light(e.stroke): el['knock'] = True
+            els.append(el)
     if not els:
         raise ValueError('no visible paths')
     return els, warns
@@ -92,10 +148,12 @@ def flatten(text):
 def svg_of(els):
     out = []
     for e in els:
+        col = '#fff' if e.get('knock') else '#000'
         if e['mode'] == 'fill':
-            out.append(f'<path d="{e["d"]}" fill="#000"' + (' fill-rule="evenodd"' if e.get('rule') else '') + '/>')
+            out.append(f'<path d="{e["d"]}" fill="{col}"' + (' fill-rule="evenodd"' if e.get('rule') else '') + '/>')
         else:
-            out.append(f'<path d="{e["d"]}" fill="none" stroke="#000" stroke-width="{e["w"]}" stroke-linecap="round" stroke-linejoin="round"/>')
+            out.append(f'<path d="{e["d"]}" fill="none" stroke="{col}" stroke-width="{e["w"]}" stroke-linecap="{e.get("cap", "round")}" stroke-linejoin="{e.get("join", "round")}"'
+                       + (f' stroke-miterlimit="{e["miter"]}"' if e.get('miter') else '') + '/>')
     return ''.join(out)
 
 def wrap(body):

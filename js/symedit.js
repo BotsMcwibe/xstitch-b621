@@ -14,8 +14,8 @@ export function bakeD(d,k,ox,oy){const tk=d.match(/[MmLlHhVvCcSsQqTtAaZz]|-?(?:\
   return out.join(' ').replace(/ ([MmLlHhVvCcSsQqTtAaZz]) /g,'$1').replace(/^([A-Za-z]) /,'$1');}
 // editor-friendly SVG from symbols.json: plain paths, transform baked in
 export function flatSvg(s){const [k,tx,ty]=s.t||[1,0,0],ox=50-50*k+tx,oy=50-50*k+ty;
-  const els=s.els.map(e=>{const d=bakeD(e.d,k,ox,oy);return e.mode==='fill'?`  <path d="${d}" fill="#000"/>`:
-    `  <path d="${d}" fill="none" stroke="#000" stroke-width="${f2(e.w*k)}" stroke-linecap="round" stroke-linejoin="round"/>`;});
+  const els=s.els.map(e=>{const d=bakeD(e.d,k,ox,oy),c=e.knock?'#fff':'#000';return e.mode==='fill'?`  <path d="${d}" fill="${c}"${e.rule==='evenodd'?' fill-rule="evenodd"':''}/>`:
+    `  <path d="${d}" fill="none" stroke="${c}" stroke-width="${f2(e.w*k)}" stroke-linecap="${e.cap||'round'}" stroke-linejoin="${e.join||'round'}"${e.miter?` stroke-miterlimit="${e.miter}"`:''}/>`;});
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${VB}" width="100" height="100">\n${els.join('\n')}\n</svg>\n`;}
 export const README=`Chart symbols: editing guide
 ============================
@@ -29,20 +29,35 @@ images, filters, masks and external references; text must be converted to outlin
 Similar symbols must stay distinguishable at 12 px (heart vs circle, ( ), arrows, half-moons, 5/6/8/2).
 Upload the edited files (or a zip) on symbols.html to see the match score against the scan.
 `;
+
+// Illustrator & co. export class-based CSS in <style>; inline the simple rules as presentation attributes.
+const CSS_OK=new Set(['fill','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-miterlimit','stroke-dasharray','stroke-opacity','fill-opacity','opacity','fill-rule','clip-rule','display','visibility']);
+function decls(t){const o=[];for(const d of t.split(';')){const i=d.indexOf(':');if(i<0)continue;const k=d.slice(0,i).trim().toLowerCase(),v=d.slice(i+1).trim().replace(/!important/i,'').trim();
+  if(CSS_OK.has(k)&&!/url\(\s*['"]?(?!#)|expression\(|javascript:/i.test(v))o.push([k,k==='stroke-width'||k==='stroke-miterlimit'?v.replace(/px$/i,''):v]);}return o;}
+export function inlineStyles(doc,warns){const root=doc.documentElement;const sheets=[...root.getElementsByTagName('style')];let n=0;
+  for(const st of sheets){const css=st.textContent.replace(/\/\*[\s\S]*?\*\//g,'');for(const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)){const ds=decls(m[2]);
+      for(let sel of m[1].split(',')){sel=sel.trim();if(!/^([a-zA-Z]+)?(\.[\w-]+)+$|^[a-zA-Z]+$|^#[\w-]+$/.test(sel)){if(sel)warns.push(`ignored CSS selector "${sel}"`);continue;}
+        let els=[];try{els=[...root.querySelectorAll(sel)];}catch(e){}
+        for(const el of els)for(const [k,v] of ds){el.setAttribute(k,v);n++;}}}st.remove();}
+  for(const el of [...root.querySelectorAll('[style]')]){for(const [k,v] of decls(el.getAttribute('style')))el.setAttribute(k,v);el.removeAttribute('style');}
+  for(const el of [...root.querySelectorAll('[stroke-width]')])el.setAttribute('stroke-width',el.getAttribute('stroke-width').replace(/px$/i,''));
+  let hid=0;for(const el of [...root.querySelectorAll('[display="none"],[visibility="hidden"]')]){if(el.closest('defs,clipPath,mask'))continue;el.remove();hid++;}
+  for(const el of [...root.querySelectorAll('[class]')])el.removeAttribute('class');
+  if(sheets.length)warns.push(`inlined <style> (${n} properties)`);if(hid)warns.push(`removed ${hid} hidden layer${hid>1?'s':''}/element${hid>1?'s':''}`);}
 // sanitise an uploaded SVG; returns {svg, warns} or throws
-const OK_TAGS=new Set(['svg','g','path','circle','ellipse','rect','line','polyline','polygon','title','desc','defs','clippath','lineargradient','radialgradient','stop','use']);
+const OK_TAGS=new Set(['svg','g','path','circle','ellipse','rect','line','polyline','polygon','title','desc','defs','clipPath','clippath','lineargradient','linearGradient','radialgradient','radialGradient','stop','use','mask']);
 export function sanitize(text){const warns=[];const doc=new DOMParser().parseFromString(text,'image/svg+xml');
-  if(doc.querySelector('parsererror'))throw new Error('not valid SVG/XML');const root=doc.documentElement;if(root.localName!=='svg')throw new Error('root element is not <svg>');
-  const walk=el=>{for(const c of [...el.children]){const t=c.localName.toLowerCase();if(!OK_TAGS.has(t)){warns.push(`removed <${c.localName}>`);c.remove();continue;}
+  if(doc.querySelector('parsererror'))throw new Error('not valid SVG/XML');const root=doc.documentElement;if(root.localName!=='svg')throw new Error('root element is not <svg>');inlineStyles(doc,warns);
+  const walk=el=>{for(const c of [...el.children]){const t=c.localName;if(!OK_TAGS.has(t)&&!OK_TAGS.has(t.toLowerCase())){warns.push(`removed <${c.localName}>`);c.remove();continue;}
       for(const a of [...c.attributes]){const n=a.name.toLowerCase(),v=a.value;
         if(n.startsWith('on')||((n==='href'||n==='xlink:href')&&!v.startsWith('#'))||(/url\(\s*['"]?(?!#)/i.test(v))||/javascript:|expression\(/i.test(v)){c.removeAttribute(a.name);warns.push(`removed attribute ${a.name}`);}}
       if(c.hasAttribute('transform')&&!warns.includes('uses transforms'))warns.push('uses transforms');walk(c);}};
   for(const a of [...root.attributes])if(a.name.toLowerCase().startsWith('on')){root.removeAttribute(a.name);warns.push(`removed attribute ${a.name}`);}walk(root);
   let vb=(root.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number);
-  if(vb.length!==4||vb.some(isNaN)){const w=parseFloat(root.getAttribute('width')),h=parseFloat(root.getAttribute('height'));vb=w&&h?[0,0,w,h]:[0,0,100,100];}
+  if(vb.length!==4||vb.some(isNaN)){const w=parseFloat(root.getAttribute('width')),h=parseFloat(root.getAttribute('height'));/* unit-less or px */vb=w&&h?[0,0,w,h]:[0,0,100,100];}
   if(vb.join(' ')!==VB){warns.push(`viewBox was "${vb.join(' ')}", rescaled to ${VB}`);const k=100/Math.max(vb[2],vb[3]),tx=(100-vb[2]*k)/2-vb[0]*k,ty=(100-vb[3]*k)/2-vb[1]*k;
     const g=doc.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('transform',`translate(${f2(tx)} ${f2(ty)}) scale(${k})`);while(root.firstChild)g.appendChild(root.firstChild);root.appendChild(g);}
-  root.setAttribute('viewBox',VB);root.setAttribute('width','100');root.setAttribute('height','100');root.removeAttribute('style');
+  root.removeAttribute('x');root.removeAttribute('y');root.setAttribute('viewBox',VB);root.setAttribute('width','100');root.setAttribute('height','100');root.removeAttribute('style');
   return {svg:new XMLSerializer().serializeToString(root),warns};}
 export function nrFromName(name){const b=name.split(/[\\/]/).pop();const m=b.match(/^0*(\d{1,2})(?:[-_ .][^/]*)?\.svg$/i);if(!m)return null;const n=+m[1];return n>=1&&n<=64?n:null;}
 // ---- match score: same metric as the design rounds (28 px cell, symbol at 86%, gaussian blur 0.8, NCC vs the scan average)
