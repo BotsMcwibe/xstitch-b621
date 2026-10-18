@@ -1,24 +1,24 @@
 <!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><title>Chart viewer</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <style>
 :root{--bg:#121417;--panel:rgba(28,31,36,.94);--fg:#e6e6e6;--mut:#9aa0a6;--line:#3a3f46;--cell:#1c1f24;--sym:#e9e9e9;--grid:rgba(255,255,255,.13);--grid10:rgba(255,255,255,.38);--acc:#E69F00;--acc2:#56B4E9;--btn:#2a2e35}
 [data-theme=light]{--bg:#f3f3f1;--panel:rgba(255,255,255,.95);--fg:#1d1d1d;--mut:#5f6368;--line:#d0d0d0;--cell:#ffffff;--sym:#111;--grid:rgba(0,0,0,.16);--grid10:rgba(0,0,0,.5);--acc:#0072B2;--acc2:#E69F00;--btn:#ececec}
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}
 canvas{position:fixed;inset:0;width:100vw;height:100vh;touch-action:none;cursor:grab;display:block}canvas.drag{cursor:grabbing}
 .panel{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.35);backdrop-filter:blur(6px)}
-#bar{top:10px;left:10px;display:flex;align-items:center;gap:6px;padding:6px;flex-wrap:wrap;max-width:calc(100vw - 340px)}body.noleg #bar{max-width:calc(100vw - 20px)}
+#bar{top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));display:flex;align-items:center;gap:6px;padding:6px;flex-wrap:wrap;max-width:calc(100vw - 340px)}body.noleg #bar{max-width:calc(100vw - 20px)}
 #bar.min .full{display:none}
 button,select,input{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:5px 9px}
 button{cursor:pointer}button:hover{border-color:var(--acc2)}button.on{outline:2px solid var(--acc);outline-offset:-2px}
 input[type=number]{width:62px}.sep{width:1px;height:22px;background:var(--line)}.t{font-weight:600;padding:0 4px}
 nav a{color:var(--acc2);margin:0 4px;font-size:13px}
-#leg{top:10px;right:10px;bottom:46px;width:268px;display:flex;flex-direction:column;transition:transform .2s}
+#leg{top:10px;right:10px;bottom:10px;width:268px;display:flex;flex-direction:column;transition:transform .2s}
 #leg.hide{transform:translateX(calc(100% + 20px))}
 #legHead{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
 #legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:8px;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;align-content:start}
 #selBar{padding:6px 10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px}#selBar button{padding:2px 8px;font-size:12px}#selSum{width:100%;color:var(--mut)}
 .chip{position:relative;padding:3px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:7px;min-width:0}.chip img{width:26px;height:26px;background:#fff;border-radius:4px;padding:1px}.chip .cn{font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut)}.chip .cs{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px}
-.chip.on{outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:var(--fg);font-weight:700}
+.chip .pc{display:block;font-size:9.5px;line-height:1;opacity:.85}.chip.on{outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:var(--fg);font-weight:700}
 .row{display:grid;grid-template-columns:26px 22px 26px 1fr;gap:6px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer}
 .row:hover{background:rgba(127,127,127,.15)}.row.on{outline:2px solid var(--acc)}
 .row .sw{width:20px;height:20px;border-radius:4px;border:1px solid rgba(127,127,127,.6)}.row img{width:24px;height:24px;background:#fff;border-radius:4px;padding:1px}
@@ -28,32 +28,43 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #status{left:10px;bottom:10px;padding:6px 12px;font-size:13px;color:var(--mut);max-width:calc(100vw - 20px)}#status b{color:var(--fg)}
 #tip{position:fixed;pointer-events:none;display:none;padding:6px 9px;font-size:13px;border-radius:8px;z-index:5}
 #help{display:none;top:60px;left:10px;padding:10px 14px;font-size:13px}#help.show{display:block}kbd{border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--btn)}
-@media (max-width:700px){#leg{width:calc(100vw - 20px);top:auto;height:45vh}}
+#bar .ico{display:none}#pgLbl{padding:0 6px;white-space:nowrap}.grp{display:inline-flex;gap:2px;align-items:center}
+@media (max-width:700px){
+ #bar{left:calc(6px + env(safe-area-inset-left));right:calc(6px + env(safe-area-inset-right));top:calc(6px + env(safe-area-inset-top));max-width:none!important;flex-wrap:nowrap;gap:4px;padding:4px;overflow:hidden}
+ #bar .t,#bar .lbl,#bar .sep{display:none}#bar .ico{display:inline}#bar button{padding:5px 8px;min-width:34px}
+ #bar .ovf,#bar .mz{display:none}#bar.menu .mz{display:inline-block}#pgCtl{display:inline-flex;align-items:center}#bar #pgLbl{padding:0 3px;font-size:13px}#bar.menu{flex-wrap:wrap;overflow:visible}#bar.menu .ovf{display:inline-flex;align-items:center;gap:4px}#bar.menu nav{width:100%;padding:4px}
+ #bar.min .full{display:none}
+ #leg{left:env(safe-area-inset-left);right:env(safe-area-inset-right);width:auto;top:auto;bottom:0;height:auto;max-height:50vh;border-radius:14px 14px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+ #leg.hide{transform:translateY(calc(100% + 10px))}#legList{grid-template-columns:repeat(auto-fill,minmax(38px,1fr))}
+ #legTab{top:auto;bottom:calc(8px + env(safe-area-inset-bottom));right:calc(8px + env(safe-area-inset-right));writing-mode:horizontal-tb;padding:6px 12px}
+ #status{top:calc(52px + env(safe-area-inset-top));bottom:auto;left:calc(6px + env(safe-area-inset-left));right:auto;max-width:calc(100vw - 12px);font-size:11.5px;padding:3px 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #help{top:calc(52px + env(safe-area-inset-top));left:6px;right:6px}
+}
 </style></head><body>
 <canvas id="cv"></canvas>
 <div id="bar" class="panel">
- <button id="minBtn" title="Collapse / expand toolbar">☰</button><span class="t">Deer chart</span>
+ <button id="minBtn" title="Menu / collapse toolbar" aria-label="Menu">☰</button><span class="t">Deer chart</span>
  <span class="full sep"></span>
- <span class="full"><button data-mode="sym" class="on" title="Symbols only (C)">Symbols</button><button data-mode="col" title="Colours + symbols (C)">Colours</button></span>
+ <span class="full grp"><button data-mode="sym" class="on" title="Symbols only (C)" aria-label="Symbols"><span class="ico">✱</span><span class="lbl">Symbols</span></button><button data-mode="col" title="Colours + symbols (C)" aria-label="Colours"><span class="ico">◧</span><span class="lbl">Colours</span></button></span>
  <span class="full sep"></span>
- <span class="full"><button id="zOut" title="Zoom out (− or [)">−</button><button id="fitBtn" title="Fit chart (0)">Fit</button><button id="zIn" title="Zoom in (+ or ])">+</button></span>
+ <span class="full grp"><button id="zOut" class="mz" title="Zoom out (− or [)" aria-label="Zoom out">−</button><button id="fitBtn" title="Fit (0)" aria-label="Fit">⤢<span class="lbl"> Fit</span></button><button id="zIn" class="mz" title="Zoom in (+ or ])" aria-label="Zoom in">+</button></span>
  <span class="full sep"></span>
- <span class="full"><button id="focBtn" title="Focus on one printed page (P)">Page focus</button><span id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)">‹</button><b id="pgLbl" style="padding:0 6px">Page 1 / 16</b><button id="pgNext" title="Next page (+)">›</button></span></span>
- <span class="full sep"></span>
- <label class="full"><input type="checkbox" id="lowChk"> Low confidence</label>
- <span class="full">Row <input id="gr" type="number" min="1"> Col <input id="gc" type="number" min="1"> <button id="goBtn">Go</button></span>
- <span class="full sep"></span>
- <button class="full" id="legBtn" title="Legend (L)">Legend</button>
- <button class="full" id="themeBtn" title="Light / dark (T)">Light</button>
- <button class="full" id="fsBtn" title="Fullscreen (F)">⛶ Fullscreen</button>
- <button class="full" id="helpBtn" title="Keyboard and touch help (?)">?</button>
- <nav class="full"><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
+ <span class="full grp"><button id="focBtn" title="Focus on one printed page (P)" aria-label="Page focus">▣<span class="lbl"> Page focus</span></button><span id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page">‹</button><b id="pgLbl"><span class="lbl">Page </span><span id="pgN">1</span> / 16</b><button id="pgNext" title="Next page (+)" aria-label="Next page">›</button></span></span>
+ <button class="full" id="legBtn" title="Legend (L)" aria-label="Legend">▤<span class="lbl"> Legend</span></button>
+ <span class="full sep ovf"></span>
+ <label class="full ovf"><input type="checkbox" id="lowChk"> Low confidence</label>
+ <span class="full ovf">Row <input id="gr" type="number" min="1"> Col <input id="gc" type="number" min="1"> <button id="goBtn">Go</button></span>
+ <span class="full sep ovf"></span>
+ <button class="full ovf" id="themeBtn" title="Light / dark (T)">Light</button>
+ <button class="full ovf" id="fsBtn" title="Fullscreen (F)">⛶ Fullscreen</button>
+ <button class="full ovf" id="helpBtn" title="Keyboard and touch help (?)">?</button>
+ <nav class="full ovf"><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
 </div>
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
 <kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · <kbd>C</kbd> colours/symbols · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout) with a 10-stitch margin: the margin is dimmed, the page border is outlined, everything else is greyed.</div>
 <div id="leg" class="panel"><div id="legHead"><b>Legend</b><input id="legFilter" placeholder="Filter nr or name"><button id="legClose" title="Hide legend (L)">×</button></div><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips matching the filter">Select shown</button><span id="selSum"></span></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
-<div id="status" class="panel">Loading…</div><div id="tip" class="panel"></div>
+<div id="status" hidden></div><div id="tip" class="panel"></div>
 <script type="module">
 import {start,keyMap,getCorr} from './js/bundle.js';
 import {loadSymbols,symbolBitmap,symUrl} from './js/symbols.js';
@@ -119,27 +130,32 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
   ctx.textAlign='right';const tx=Math.max(26*dpr,Math.min(W-4,ox-4));
   for(let r=Math.ceil(r0/step)*step;r<=r1;r+=step)if(r>0)ctx.fillText(r,tx,oy+r*s+fs/3);
 }
-let mark=null;
+let mark=null,tipT=0;
 function resize(){dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();chart=null;draw();}
 addEventListener('resize',resize);
-function clampS(s){return Math.min(MAXPX,Math.max(MINPX,s));}
+function clampS(s){return Math.min(MAXPX,Math.max(innerWidth<=700?0.9:MINPX,s));}
 function zoomAt(f,mx,my,smooth=true){const b=target||view,ns=clampS(b.s*f);const t={s:ns,x:mx-(mx-b.x)*ns/b.s,y:my-(my-b.y)*ns/b.s};if(smooth){target=t;}else{view=t;target=null;}draw();}
-function fitRect(r0,c0,r1,c1,smooth=true){const legW=$('leg').classList.contains('hide')||innerWidth<700?0:288;const aw=innerWidth-legW-30,ah=innerHeight-120;
-  const s=clampS(Math.min(aw/(c1-c0),ah/(r1-r0)));const t={s,x:15+(aw-(c1-c0)*s)/2-c0*s,y:72+(ah-(r1-r0)*s)/2-r0*s};if(smooth)target=t;else{view=t;target=null;}draw();}
-function setFocus(on,n=page,smooth=true){focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'':'none';
-  $('pgLbl').textContent=`Page ${page} / 16`;chart=null;if(focus)fit(smooth);status();save();draw();}
-function fit(smooth=true){if(!B)return;if(focus&&FR)return fitRect(FR.m0r,FR.m0c,FR.m1r,FR.m1c,smooth);const legW=$('leg').classList.contains('hide')||innerWidth<700?0:320;const aw=innerWidth-legW-40,ah=innerHeight-110;
-  const s=clampS(Math.min(aw/C,ah/R));const t={s,x:20+(aw-C*s)/2,y:70+(ah-R*s)/2};if(smooth)target=t;else{view=t;target=null;}draw();}
-function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('legList');el.innerHTML='';
-  for(const k of B.key){if(f&&!(String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f)))continue;
+function avail(){const narrow=innerWidth<=700,legOpen=!$('leg').classList.contains('hide');const top=(narrow?56:72),
+  leg=legOpen?(narrow?$('leg').getBoundingClientRect().height||innerHeight*0.5:0):0,legW=legOpen&&!narrow?288:0;
+  return {x:12,y:top,w:innerWidth-legW-24,h:innerHeight-top-leg-(narrow?12:20)};}
+function fitRect(r0,c0,r1,c1,smooth=true){const a=avail();const s=clampS(Math.min(a.w/(c1-c0),a.h/(r1-r0)));
+  const t={s,x:a.x+(a.w-(c1-c0)*s)/2-c0*s,y:a.y+(a.h-(r1-r0)*s)/2-r0*s};if(smooth)target=t;else{view=t;target=null;}draw();}
+function setFocus(on,n=page,smooth=true){focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'inline-flex':'none';
+  $('pgN').textContent=page;chart=null;if(B)legend();if(focus)fit(smooth);status();save();draw();}
+function fit(smooth=true){if(!B)return;if(focus&&FR)return fitRect(FR.m0r,FR.m0c,FR.m1r,FR.m1c,smooth);fitRect(0,0,R,C,smooth);}
+function pageCounts(){const n={};for(let r=FR.r0;r<FR.r1;r++)for(let q=FR.c0;q<FR.c1;q++){const v=grid[r*C+q];n[v]=(n[v]||0)+1;}return n;}
+function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('legList');el.innerHTML='';const PC=focus&&FR?pageCounts():null;
+  for(const k of B.key){if(PC&&!PC[k.nr])continue;if(f&&!(String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f)))continue;
     const got=CNT[k.nr]||0,d=got-k.count,ch=document.createElement('button');ch.className='chip'+(sel.has(k.nr)?' on':'');
-    ch.title=`#${k.nr} ${k.symbol}${k.code?' · '+k.code:''}\n${got} stitches (key ${k.count}${d?`, ${d>0?'+':''}${d}`:''})`;
-    ch.innerHTML=`<img alt="" src="${symUrl(k.nr)}"><span class="cn">${k.nr}</span><span class="cs" style="background:${k.hex}"></span>`;
+    ch.title=`#${k.nr} ${k.symbol}${k.code?' · '+k.code:''}\n`+(PC?`${PC[k.nr]} stitches on page ${page} · ${got} in chart`:`${got} stitches (key ${k.count}${d?`, ${d>0?'+':''}${d}`:''})`);
+    ch.innerHTML=`<img alt="" src="${symUrl(k.nr)}"><span class="cn">${k.nr}${PC?`<small class="pc">${PC[k.nr]}</small>`:''}</span><span class="cs" style="background:${k.hex}"></span>`;
     ch.onclick=()=>{sel.has(k.nr)?sel.delete(k.nr):sel.add(k.nr);selChanged();};el.appendChild(ch);}
   const tot=[...sel].reduce((a,n)=>a+(CNT[n]||0),0);
+  if(PC){const shown=Object.keys(PC).length,ps=(FR.r1-FR.r0)*(FR.c1-FR.c0),selP=[...sel].filter(n=>PC[n]),pt=selP.reduce((a,n)=>a+PC[n],0),hid=sel.size-selP.length;
+    $('selSum').innerHTML=`Page ${page}: ${shown} symbols, ${ps.toLocaleString()} stitches`+(sel.size?`<br><b>${selP.length}</b> selected here · <b>${pt.toLocaleString()}</b> stitches on this page (${(100*pt/ps).toFixed(1)}%)`+(hid?` · ${hid} more selected, not on this page`:''):'');return;}
   $('selSum').innerHTML=sel.size?`<b>${sel.size}</b> selected · <b>${tot.toLocaleString()}</b> stitches (${(100*tot/(R*C)).toFixed(1)}%)`:`None selected · ${(R*C).toLocaleString()} stitches total`;}
 function selChanged(){chart=null;legend();status();save();draw();}
-function status(){if(!B)return;const tot=[...sel].reduce((a,n)=>a+(CNT[n]||0),0);st.innerHTML=`<b>${B.meta?.title||'Chart'}</b> · ${C}×${R} stitches · ${B.key.length} colours`+(sel.size?` · <b>${sel.size}</b> selected, <b>${tot.toLocaleString()}</b> stitches (Esc to clear)`:'')+(focus?` · page <b>${page}</b> / 16`:'')+` · <span id="zl">${Math.round(view.s*10)/10}px/stitch</span>`;}
+function status(){} // bottom info bar removed; selection total lives in the legend
 function cellAt(x,y){const q=Math.floor((x-view.x)/view.s),r=Math.floor((y-view.y)/view.s);return r>=0&&q>=0&&r<R&&q<C?{r,q}:null;}
 function info(cell){const nr=grid[cell.r*C+cell.q],k=K[nr],cf=B.grid.conf?B.grid.conf[cell.r*C+cell.q]:null;
   return `Row ${cell.r+1}, col ${cell.q+1}<br><span style="display:inline-block;width:11px;height:11px;border:1px solid #888;background:${k?.hex}"></span> #${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;}
@@ -163,7 +179,7 @@ cv.addEventListener('pointermove',e=>{if(P.has(e.pointerId))P.set(e.pointerId,{x
     tip.style.left=Math.min(innerWidth-200,e.clientX+16)+'px';tip.style.top=Math.min(innerHeight-80,e.clientY+16)+'px';tip.style.display='block';}});
 const up=e=>{P.delete(e.pointerId);if(P.size<2)pinch=null;if(P.size===1){const [a]=[...P.values()];pan={x:a.x,y:a.y,vx:view.x,vy:view.y};}
   if(P.size===0){pan=null;cv.classList.remove('drag');
-    if(!moved&&B){const now=Date.now();if(now-lastTap<300){zoomAt(2,e.clientX,e.clientY);lastTap=0;}else{lastTap=now;const c=cellAt(e.clientX,e.clientY);if(c&&e.pointerType!=='mouse')st.innerHTML=info(c).replace(/<br>/g,' · ');}}}};
+    if(!moved&&B){const now=Date.now();if(now-lastTap<300){zoomAt(2,e.clientX,e.clientY);lastTap=0;}else{lastTap=now;const c=cellAt(e.clientX,e.clientY);if(c&&e.pointerType!=='mouse'){tip.innerHTML=info(c);tip.style.left=Math.min(innerWidth-210,e.clientX+12)+'px';tip.style.top=Math.max(60,e.clientY-70)+'px';tip.style.display='block';clearTimeout(tipT);tipT=setTimeout(()=>tip.style.display='none',2500);}}}}};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('pointerleave',()=>tip.style.display='none');
 cv.addEventListener('wheel',e=>{e.preventDefault();const dz=e.ctrlKey?e.deltaY*3:e.deltaY;zoomAt(Math.exp(-dz*0.0022),e.clientX,e.clientY);setTimeout(status,250);},{passive:false});
 // ---- controls
@@ -176,11 +192,11 @@ $('goBtn').onclick=()=>{const r=+$('gr').value,c=+$('gc').value;if(!B||!(r>=1&&r
   mark={r:r-1,c:c-1};target={s,x:innerWidth/2-(c-0.5)*s,y:innerHeight/2-(r-0.5)*s};draw();setTimeout(()=>{mark=null;draw();},2500);};
 ['gr','gc'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').click();}));
 const togLeg=()=>{$('leg').classList.toggle('hide');document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
-$('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('legFilter').oninput=legend;$('selClr').onclick=()=>{sel.clear();selChanged();};$('selInv').onclick=()=>{sel=new Set(B.key.map(k=>k.nr).filter(n=>!sel.has(n)));selChanged();};$('selVis').onclick=()=>{const f=$('legFilter').value.trim().toLowerCase();B.key.forEach(k=>{if(!f||String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f))sel.add(k.nr);});selChanged();};
+$('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('legFilter').oninput=legend;$('selClr').onclick=()=>{sel.clear();selChanged();};$('selInv').onclick=()=>{sel=new Set(B.key.map(k=>k.nr).filter(n=>!sel.has(n)));selChanged();};$('selVis').onclick=()=>{const f=$('legFilter').value.trim().toLowerCase();const PC=focus&&FR?pageCounts():null;B.key.forEach(k=>{if(PC&&!PC[k.nr])return;if(!f||String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f))sel.add(k.nr);});selChanged();};
 $('themeBtn').onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 const fsToggle=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{});};
 $('fsBtn').onclick=fsToggle;document.addEventListener('fullscreenchange',()=>{$('fsBtn').classList.toggle('on',!!document.fullscreenElement);});
-$('minBtn').onclick=()=>$('bar').classList.toggle('min');$('helpBtn').onclick=()=>$('help').classList.toggle('show');
+$('minBtn').onclick=()=>$('bar').classList.toggle(innerWidth<=700?'menu':'min');$('helpBtn').onclick=()=>$('help').classList.toggle('show');
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
   if(k==='f'||k==='F')fsToggle();else if(k==='l'||k==='L')togLeg();else if(k==='t'||k==='T')$('themeBtn').click();
   else if(k==='c'||k==='C')setMode(mode==='sym'?'col':'sym');else if(k==='+'||k==='=')focus?setFocus(true,page+1):$('zIn').click();else if(k==='-'||k==='_')focus?setFocus(true,page-1):$('zOut').click();else if(k===']')$('zIn').click();else if(k==='[')$('zOut').click();else if(k==='p'||k==='P')setFocus(!focus);
