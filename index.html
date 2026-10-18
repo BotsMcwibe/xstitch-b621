@@ -18,7 +18,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:8px;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;align-content:start}
 #selBar{padding:6px 10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px}#selBar button{padding:2px 8px;font-size:12px}#selSum{width:100%;color:var(--mut)}
 .chip{position:relative;padding:3px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:7px;min-width:0}.chip img{width:26px;height:26px;background:#fff;border-radius:4px;padding:1px}.chip .cn{font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut)}.chip .cs{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px}
-.chip .pc{display:block;font-size:9.5px;line-height:1;opacity:.85}.chip.on{outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:var(--fg);font-weight:700}
+.chip .pc{display:block;font-size:9.5px;line-height:1;opacity:.85}.chip.on img{filter:invert(1)}.chip.on{background:#000!important;outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:#fff;font-weight:700}
 .row{display:grid;grid-template-columns:26px 22px 26px 1fr;gap:6px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer}
 .row:hover{background:rgba(127,127,127,.15)}.row.on{outline:2px solid var(--acc)}
 .row .sw{width:20px;height:20px;border-radius:4px;border:1px solid rgba(127,127,127,.6)}.row img{width:24px;height:24px;background:#fff;border-radius:4px;padding:1px}
@@ -83,8 +83,8 @@ function pageRect(n){const p=B.meta.pages.find(x=>x.n===n);const r0=p.row-1,c0=p
 const outF=()=>false; // outside the page is dimmed by a veil, not greyed
 // unselected cells: desaturated + dimmed swatch, symbol still drawn in a muted tone
 function greyOf(h){const l=lum(h),dark=document.documentElement.dataset.theme==='dark',v=Math.round(dark?34+l*0.16:212+l*0.12);return `rgb(${v},${v},${v})`;}
-function cellFill(k,off){if(!k)return TH.cell;if(off||!isOn(k.nr))return mode==='col'?greyOf(k.hex):TH.cell;return mode==='col'?k.hex:TH.cell;}
-function symCol(k,off){if(off||!isOn(k.nr))return document.documentElement.dataset.theme==='dark'?'#5f646c':'#a3a3a3';return mode==='col'?(lum(k.hex)<120?'#fff':'#000'):TH.sym;}
+function cellFill(k,off){if(!k)return TH.cell;if(sel.size&&sel.has(k.nr)&&!off)return '#000';if(off||!isOn(k.nr))return mode==='col'?greyOf(k.hex):TH.cell;return mode==='col'?k.hex:TH.cell;}
+function symCol(k,off){if(sel.size&&sel.has(k.nr)&&!off)return '#fff';if(off||!isOn(k.nr))return document.documentElement.dataset.theme==='dark'?'#5f646c':'#a3a3a3';return mode==='col'?(lum(k.hex)<120?'#fff':'#000'):TH.sym;}
 // ---- low zoom: whole chart pre-rendered at an integer pixel pitch, so symbols stay visible and crisp
 let chart=null;
 function chartBitmap(px){const key=[px,mode,[...sel].join(','),TH.cell,TH.sym,focus?page:0].join('|');if(chart&&chart.key===key)return chart.c;
