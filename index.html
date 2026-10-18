@@ -18,7 +18,8 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:8px;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;align-content:start}
 #selBar{padding:6px 10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px}#selBar button{padding:2px 8px;font-size:12px}#selSum{width:100%;color:var(--mut)}
 .chip{position:relative;padding:3px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:7px;min-width:0}.chip img{width:26px;height:26px;background:#fff;border-radius:4px;padding:1px}.chip .cn{font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut)}.chip .cs{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px}
-.chip .pc{display:block;font-size:9.5px;line-height:1;opacity:.85}.chip.on img{filter:invert(1)}.chip.on{background:#000!important;outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:#fff;font-weight:700}
+.chip .pc{display:block;font-size:9.5px;line-height:1;opacity:.85}#legBtn{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}#legSel{display:inline-flex;gap:2px;align-items:center;vertical-align:middle}#legSel img.mini{width:16px;height:16px;background:#fff;filter:invert(1);border-radius:3px;padding:1px}#legSel .more{font-size:12px;margin-left:2px}
+.chip.on img{filter:invert(1)}.chip.on{background:#000!important;outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:#fff;font-weight:700}
 .row{display:grid;grid-template-columns:26px 22px 26px 1fr;gap:6px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer}
 .row:hover{background:rgba(127,127,127,.15)}.row.on{outline:2px solid var(--acc)}
 .row .sw{width:20px;height:20px;border-radius:4px;border:1px solid rgba(127,127,127,.6)}.row img{width:24px;height:24px;background:#fff;border-radius:4px;padding:1px}
@@ -31,7 +32,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #bar .ico{display:none}#pgLbl{padding:0 6px;white-space:nowrap}.grp{display:inline-flex;gap:2px;align-items:center}
 @media (max-width:700px){
  #bar{left:calc(6px + env(safe-area-inset-left));right:calc(6px + env(safe-area-inset-right));top:calc(6px + env(safe-area-inset-top));max-width:none!important;flex-wrap:nowrap;gap:4px;padding:4px;overflow:hidden}
- #bar .t,#bar .lbl,#bar .sep{display:none}#bar .ico{display:inline}#bar button{padding:5px 8px;min-width:34px}
+ #bar .t,#bar .lbl,#bar .sep{display:none}#bar .ico{display:inline}#bar button{padding:4px 6px;min-width:30px}#legSel img.mini{width:13px;height:13px}#bar #pgLbl{font-size:12px}
  #bar .ovf,#bar .mz{display:none}#bar.menu .mz{display:inline-block}#pgCtl{display:inline-flex;align-items:center}#bar #pgLbl{padding:0 3px;font-size:13px}#bar.menu{flex-wrap:wrap;overflow:visible}#bar.menu .ovf{display:inline-flex;align-items:center;gap:4px}#bar.menu nav{width:100%;padding:4px}
  #bar.min .full{display:none}
  #leg{left:env(safe-area-inset-left);right:env(safe-area-inset-right);width:auto;top:auto;bottom:0;height:auto;max-height:50vh;border-radius:14px 14px 0 0;padding-bottom:env(safe-area-inset-bottom)}
@@ -47,10 +48,10 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
  <span class="full sep"></span>
  <span class="full grp"><button data-mode="sym" class="on" title="Symbols only (C)" aria-label="Symbols"><span class="ico">✱</span><span class="lbl">Symbols</span></button><button data-mode="col" title="Colours + symbols (C)" aria-label="Colours"><span class="ico">◧</span><span class="lbl">Colours</span></button></span>
  <span class="full sep"></span>
- <span class="full grp"><button id="zOut" class="mz" title="Zoom out (− or [)" aria-label="Zoom out">−</button><button id="fitBtn" title="Fit (0)" aria-label="Fit">⤢<span class="lbl"> Fit</span></button><button id="zIn" class="mz" title="Zoom in (+ or ])" aria-label="Zoom in">+</button></span>
+ <span class="full grp"><button id="zOut" class="mz" title="Zoom out (− or [)" aria-label="Zoom out">−</button><button id="fitBtn" class="mz" title="Fit (0)" aria-label="Fit">⤢<span class="lbl"> Fit</span></button><button id="zIn" class="mz" title="Zoom in (+ or ])" aria-label="Zoom in">+</button></span>
  <span class="full sep"></span>
  <span class="full grp"><button id="focBtn" title="Focus on one printed page (P)" aria-label="Page focus">▣<span class="lbl"> Page focus</span></button><span id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page">‹</button><b id="pgLbl"><span class="lbl">Page </span><span id="pgN">1</span> / 16</b><button id="pgNext" title="Next page (+)" aria-label="Next page">›</button></span></span>
- <button class="full" id="legBtn" title="Legend (L)" aria-label="Legend">▤<span class="lbl"> Legend</span></button>
+ <button class="full" id="legBtn" title="Legend (L)" aria-label="Legend">▤ <span id="legSel">All</span></button>
  <span class="full sep ovf"></span>
  <label class="full ovf"><input type="checkbox" id="lowChk"> Low confidence</label>
  <span class="full ovf">Row <input id="gr" type="number" min="1"> Col <input id="gc" type="number" min="1"> <button id="goBtn">Go</button></span>
@@ -150,10 +151,12 @@ function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('
     ch.title=`#${k.nr} ${k.symbol}${k.code?' · '+k.code:''}\n`+(PC?`${PC[k.nr]} stitches on page ${page} · ${got} in chart`:`${got} stitches (key ${k.count}${d?`, ${d>0?'+':''}${d}`:''})`);
     ch.innerHTML=`<img alt="" src="${symUrl(k.nr)}"><span class="cn">${k.nr}${PC?`<small class="pc">${PC[k.nr]}</small>`:''}</span><span class="cs" style="background:${k.hex}"></span>`;
     ch.onclick=()=>{sel.has(k.nr)?sel.delete(k.nr):sel.add(k.nr);selChanged();};el.appendChild(ch);}
-  const tot=[...sel].reduce((a,n)=>a+(CNT[n]||0),0);
+  legPill(CC);const tot=[...sel].reduce((a,n)=>a+(CNT[n]||0),0);
   if(PC){const shown=Object.keys(PC).length,ps=(FR.r1-FR.r0)*(FR.c1-FR.c0),selP=[...sel].filter(n=>PC[n]),pt=selP.reduce((a,n)=>a+PC[n],0),hid=sel.size-selP.length;
     $('selSum').innerHTML=`Page ${page}: ${shown} symbols, ${ps.toLocaleString()} stitches`+(sel.size?`<br><b>${selP.length}</b> selected here · <b>${pt.toLocaleString()}</b> stitches on this page (${(100*pt/ps).toFixed(1)}%)`+(hid?` · ${hid} more selected, not on this page`:''):'');return;}
   $('selSum').innerHTML=sel.size?`<b>${sel.size}</b> selected · <b>${tot.toLocaleString()}</b> stitches (${(100*tot/(R*C)).toFixed(1)}%)`:`None selected · ${(R*C).toLocaleString()} stitches total`;}
+function legPill(CC){const el=$('legSel');if(!sel.size){el.textContent='All';return;}
+  const top=[...sel].sort((a,b)=>(CC[b]||0)-(CC[a]||0)||a-b);el.innerHTML=top.slice(0,5).map(n=>`<img class="mini" alt="${n}" title="#${n}" src="${symUrl(n)}">`).join('')+(top.length>5?`<span class="more">+${top.length-5}</span>`:'');}
 function selChanged(){chart=null;legend();status();save();draw();}
 function status(){} // bottom info bar removed; selection total lives in the legend
 function cellAt(x,y){const q=Math.floor((x-view.x)/view.s),r=Math.floor((y-view.y)/view.s);return r>=0&&q>=0&&r<R&&q<C?{r,q}:null;}
