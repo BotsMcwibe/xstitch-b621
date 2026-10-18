@@ -13,6 +13,9 @@ Bundle schema (bundle.json):
    reference:[{name,page,row0,col0,rows,cols,cell,img:"data:image/jpeg;base64,..."}]}
 Rows/cols are 1-based. reference tiles are resampled so each cell is exactly `cell` px.
 """
+# printed page layout (4x4, row-major, page 1 top-left); 1-based first row/col, size
+COLSTART=[1,113,225,337]; ROWSTART=[1,71,141,211]
+PAGES=[{'n':4*i+j+1,'row':ROWSTART[i],'col':COLSTART[j],'rows':(ROWSTART[i+1] if i<3 else 281)-ROWSTART[i],'cols':(COLSTART[j+1] if j<3 else 421)-COLSTART[j]} for i in range(4) for j in range(4)]
 import re,argparse,base64,io,json,os,sys,csv
 import numpy as np
 from PIL import Image
@@ -68,7 +71,7 @@ def real(work,out,cell=16,tiles=True,cover=None,reference=None):
           out_img[k*cell:(k+1)*cell,(c-c0)*cell:(c-c0+1)*cell]=cv2.resize(crop,(cell,cell),interpolation=cv2.INTER_AREA)
       ref.append({'name':nm,'page':p,'row0':r0+1,'col0':int(c0),'rows':70,'cols':int(c1-c0+1),'cell':cell,'img':durl(Image.fromarray(out_img),'JPEG',70)})
   bundle={'format':'deer-chart','version':1,
-    'meta':{'title':'Deer chart','source':'scanned paper chart','fabric':'16 count Aida','rows':280,'cols':420},
+    'meta':{'title':'Deer chart','source':'scanned paper chart','fabric':'16 count Aida','rows':280,'cols':420,'pages':PAGES},
     'key':[{'nr':int(k['nr']),'symbol':k['symbol'],'count':int(k['stitch_count']),'hex':k['swatch_hex_wb'],'code':k.get('code','')} for k in key],
     'glyphs':{str(k):v for k,v in glyphs.items()},
     'grid':{'rows':280,'cols':420,'nr':[int(v) for v in y.ravel()],'conf':[int(round(v*100)) for v in conf.ravel()],'low':[[int(r)+1,int(c)+1] for r,c in np.argwhere(low)]},
