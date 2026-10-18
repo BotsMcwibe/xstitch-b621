@@ -12,7 +12,7 @@ button,select,input{font:inherit;color:var(--fg);background:var(--btn);border:1p
 button{cursor:pointer}button:hover{border-color:var(--acc2)}button.on{outline:2px solid var(--acc);outline-offset:-2px}
 input[type=number]{width:62px}.sep{width:1px;height:22px;background:var(--line)}.t{font-weight:600;padding:0 4px}
 nav a{color:var(--acc2);margin:0 4px;font-size:13px}
-#leg{top:10px;right:10px;bottom:10px;width:268px;display:flex;flex-direction:column;transition:transform .2s}
+#leg{top:10px;right:10px;bottom:auto;max-height:calc(100vh - 20px);width:268px;display:flex;flex-direction:column;transition:transform .2s}
 #leg.hide{transform:translateX(calc(100% + 20px))}
 #legHead{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
 #legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:8px;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;align-content:start}
@@ -157,7 +157,7 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
 }
 let mark=null,tipT=0;
 function placeSeg(){}
-let rzT=0;function resize(){placeSeg();clearTimeout(rzT);rzT=setTimeout(()=>{if(B&&zp==='fit')fit(false);},150);dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();tilesReset();draw();}
+let rzT=0;function resize(){placeSeg();setTimeout(capLeg,0);clearTimeout(rzT);rzT=setTimeout(()=>{if(B&&zp==='fit')fit(false);},150);dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();tilesReset();draw();}
 addEventListener('resize',resize);
 function clampS(s){return Math.min(MAXPX,Math.max(innerWidth<=700?0.9:MINPX,s));}
 function zoomAt(f,mx,my,smooth=true){const b=target||view,ns=clampS(b.s*f);const t={s:ns,x:mx-(mx-b.x)*ns/b.s,y:my-(my-b.y)*ns/b.s};if(smooth){target=t;}else{view=t;target=null;}draw();}
@@ -170,7 +170,10 @@ function setFocus(on,n=page,smooth=true,keep=false){const prevV={...view};focus=
   $('pgN').textContent=page;if(B)legend();if(focus&&!keep){fit(false);if(zp&&zp!=='fit')preset(zp,false);else if(smooth){const t=view;view=prevV||view;target=t;}}status();save();draw();}
 function fit(smooth=true){if(!B)return;if(focus&&FR)return fitRect(FR.m0r,FR.m0c,FR.m1r,FR.m1c,smooth);fitRect(0,0,R,C,smooth);}
 function pageCounts(){const n={};for(let r=FR.r0;r<FR.r1;r++)for(let q=FR.c0;q<FR.c1;q++){const v=grid[r*C+q];n[v]=(n[v]||0)+1;}return n;}
-function legend(){const f='';const el=$('legList');el.innerHTML='';const PC=focus&&FR?pageCounts():null;
+// chip grid capped at exactly 3 chip rows; the rest scrolls inside it
+function capLeg(){const el=$('legList'),ch=el.querySelector('.chip');if(!ch)return;const cs=getComputedStyle(el),g=parseFloat(cs.rowGap)||4;
+  el.style.flex='none';el.style.maxHeight=(3*ch.offsetHeight+2*g+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom))+'px';}
+function legend(){setTimeout(capLeg,0);const f='';const el=$('legList');el.innerHTML='';const PC=focus&&FR?pageCounts():null;
   const CC=PC||CNT,keys=[...B.key].sort((a,b)=>(CC[b.nr]||0)-(CC[a.nr]||0)||a.nr-b.nr); // most used first
   for(const k of keys){if(PC&&!PC[k.nr])continue;if(f&&!(String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f)))continue;
     const got=CNT[k.nr]||0,d=got-k.count,ch=document.createElement('button');ch.className='chip'+(sel.has(k.nr)?' on':'');
