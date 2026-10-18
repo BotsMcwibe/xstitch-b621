@@ -73,6 +73,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #legTab:active{background:var(--prs)!important}
 @media (max-width:700px){#bar .pill button{width:44px;height:44px}#legTab{height:44px}}
 @media (max-height:480px){#bar{gap:6px!important}#bar .pill button{width:36px;height:34px}}
+button,.chip,#leg,#legTab,#bar,#help,input,label{touch-action:manipulation}
 </style></head><body>
 <canvas id="cv"></canvas>
 <div id="bar">
@@ -259,7 +260,7 @@ $('lowChk').onchange=e=>{showLow=e.target.checked;draw();};
 $('goBtn').onclick=()=>{const r=+$('gr').value,c=+$('gc').value;if(!B||!(r>=1&&r<=R&&c>=1&&c<=C))return;const s=Math.max(view.s,28);
   mark={r:r-1,c:c-1};target={s,x:innerWidth/2-(c-0.5)*s,y:innerHeight/2-(r-0.5)*s};draw();setTimeout(()=>{mark=null;draw();},2500);};
 ['gr','gc'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').click();}));
-const togLeg=()=>{setTimeout(layBar,230);$('leg').classList.toggle('hide');if(B&&focus&&innerWidth<=700)setTimeout(()=>fit(),220);document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
+const togLeg=()=>{setTimeout(layBar,230);$('leg').classList.toggle('hide');document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
 $('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('selClr').onclick=()=>{sel.clear();selChanged();};$('selInv').onclick=()=>{sel=new Set(B.key.map(k=>k.nr).filter(n=>!sel.has(n)));selChanged();};$('selVis').onclick=()=>{const f='';const PC=focus&&FR?pageCounts():null;B.key.forEach(k=>{if(PC&&!PC[k.nr])return;if(!f||String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f))sel.add(k.nr);});selChanged();};
 $('themeBtn').onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 const fsToggle=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{});};
