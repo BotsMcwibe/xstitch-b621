@@ -46,8 +46,6 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 <div id="bar" class="panel">
  <button id="minBtn" title="Menu / collapse toolbar" aria-label="Menu">☰</button><span class="t">Deer chart</span>
  <span class="full sep"></span>
- <span class="full grp"><button data-mode="sym" class="on" title="Symbols only (C)" aria-label="Symbols"><span class="ico">✱</span><span class="lbl">Symbols</span></button><button data-mode="col" title="Colours + symbols (C)" aria-label="Colours"><span class="ico">◧</span><span class="lbl">Colours</span></button></span>
- <span class="full sep"></span>
  <span class="full grp"><button id="zOut" class="mz" title="Zoom out (− or [)" aria-label="Zoom out">−</button><button id="fitBtn" class="mz" title="Fit (0)" aria-label="Fit">⤢<span class="lbl"> Fit</span></button><button id="zIn" class="mz" title="Zoom in (+ or ])" aria-label="Zoom in">+</button></span>
  <span class="full sep"></span>
  <span class="full grp"><button id="focBtn" title="Focus on one printed page (P)" aria-label="Page focus">▣<span class="lbl"> Page focus</span></button><span id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page">‹</button><b id="pgLbl"><span class="lbl">Page </span><span id="pgN">1</span> / 16</b><button id="pgNext" title="Next page (+)" aria-label="Next page">›</button></span></span>
@@ -62,7 +60,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
  <nav class="full ovf"><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
 </div>
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
-<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · <kbd>C</kbd> colours/symbols · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout): the page is outlined and everything around it is dimmed. It is on by default (page 10).</div>
+<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout): the page is outlined and everything around it is dimmed. It is on by default (page 10).</div>
 <div id="leg" class="panel"><div id="legHead"><b>Legend</b><input id="legFilter" placeholder="Filter nr or name"><button id="legClose" title="Hide legend (L)">×</button></div><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips matching the filter">Select shown</button><span id="selSum"></span></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" hidden></div><div id="tip" class="panel"></div>
@@ -71,7 +69,7 @@ import {start,keyMap,getCorr} from './js/bundle.js';
 import {loadSymbols,symbolBitmap,symUrl} from './js/symbols.js';
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d'),tip=$('tip'),st=$('status');
 const MINPX=2.5,MAXPX=90;
-let B=null,K={},grid=null,R=0,C=0,mode='sym',sel=new Set(),CNT={},showLow=false,lowSet=new Set(),dpr=1;
+let B=null,K={},grid=null,R=0,C=0,mode='sym' /* colours mode removed: always symbols */,sel=new Set(),CNT={},showLow=false,lowSet=new Set(),dpr=1;
 let view={s:8,x:0,y:0},target=null,raf=0;
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 let TH={};function theme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('deerchart:theme',t)}catch(e){}
@@ -149,7 +147,7 @@ function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('
   for(const k of keys){if(PC&&!PC[k.nr])continue;if(f&&!(String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f)))continue;
     const got=CNT[k.nr]||0,d=got-k.count,ch=document.createElement('button');ch.className='chip'+(sel.has(k.nr)?' on':'');
     ch.title=`#${k.nr} ${k.symbol}${k.code?' · '+k.code:''}\n`+(PC?`${PC[k.nr]} stitches on page ${page} · ${got} in chart`:`${got} stitches (key ${k.count}${d?`, ${d>0?'+':''}${d}`:''})`);
-    ch.innerHTML=`<img alt="" src="${symUrl(k.nr)}"><span class="cn">${k.nr}${PC?`<small class="pc">${PC[k.nr]}</small>`:''}</span><span class="cs" style="background:${k.hex}"></span>`;
+    ch.innerHTML=`<img alt="" src="${symUrl(k.nr)}"><span class="cn">${k.nr}${PC?`<small class="pc">${PC[k.nr]}</small>`:''}</span>`;
     ch.onclick=()=>{sel.has(k.nr)?sel.delete(k.nr):sel.add(k.nr);selChanged();};el.appendChild(ch);}
   legPill(CC);const tot=[...sel].reduce((a,n)=>a+(CNT[n]||0),0);
   if(PC){const shown=Object.keys(PC).length,ps=(FR.r1-FR.r0)*(FR.c1-FR.c0),selP=[...sel].filter(n=>PC[n]),pt=selP.reduce((a,n)=>a+PC[n],0),hid=sel.size-selP.length;
@@ -161,13 +159,13 @@ function selChanged(){chart=null;legend();status();save();draw();}
 function status(){} // bottom info bar removed; selection total lives in the legend
 function cellAt(x,y){const q=Math.floor((x-view.x)/view.s),r=Math.floor((y-view.y)/view.s);return r>=0&&q>=0&&r<R&&q<C?{r,q}:null;}
 function info(cell){const nr=grid[cell.r*C+cell.q],k=K[nr],cf=B.grid.conf?B.grid.conf[cell.r*C+cell.q]:null;
-  return `Row ${cell.r+1}, col ${cell.q+1}<br><span style="display:inline-block;width:11px;height:11px;border:1px solid #888;background:${k?.hex}"></span> #${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;}
+  return `Row ${cell.r+1}, col ${cell.q+1}<br>#${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;}
 async function onLoad(b){B=b;K=keyMap(b);R=b.grid.rows;C=b.grid.cols;await loadSymbols();
   grid=Int16Array.from(b.grid.nr);const corr=getCorr();for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*C+(c-1)]=v;}
   lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*C+(c-1)));$('gr').max=R;$('gc').max=C;
   CNT={};grid.forEach(v=>CNT[v]=(CNT[v]||0)+1);legend();resize();
   let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'))}catch(e){}
-  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};if(sv.mode)setMode(sv.mode);if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
+  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
   status();draw();}
 // ---- input: mouse, wheel, touch (pointer events with pinch)
 const P=new Map();let pan=null,pinch=null,moved=false,lastTap=0;
@@ -186,7 +184,7 @@ const up=e=>{P.delete(e.pointerId);if(P.size<2)pinch=null;if(P.size===1){const [
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('pointerleave',()=>tip.style.display='none');
 cv.addEventListener('wheel',e=>{e.preventDefault();const dz=e.ctrlKey?e.deltaY*3:e.deltaY;zoomAt(Math.exp(-dz*0.0022),e.clientX,e.clientY);setTimeout(status,250);},{passive:false});
 // ---- controls
-document.querySelectorAll('[data-mode]').forEach(bt=>bt.onclick=()=>setMode(bt.dataset.mode));
+
 function setMode(m){mode=m;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x.dataset.mode===m));chart=null;draw();}
 $('focBtn').onclick=()=>setFocus(!focus);$('pgPrev').onclick=()=>setFocus(true,page-1);$('pgNext').onclick=()=>setFocus(true,page+1);
 $('zIn').onclick=()=>zoomAt(1.6,innerWidth/2,innerHeight/2);$('zOut').onclick=()=>zoomAt(1/1.6,innerWidth/2,innerHeight/2);$('fitBtn').onclick=()=>fit();
@@ -202,7 +200,7 @@ $('fsBtn').onclick=fsToggle;document.addEventListener('fullscreenchange',()=>{$(
 $('minBtn').onclick=()=>$('bar').classList.toggle(innerWidth<=700?'menu':'min');$('helpBtn').onclick=()=>$('help').classList.toggle('show');
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
   if(k==='f'||k==='F')fsToggle();else if(k==='l'||k==='L')togLeg();else if(k==='t'||k==='T')$('themeBtn').click();
-  else if(k==='c'||k==='C')setMode(mode==='sym'?'col':'sym');else if(k==='+'||k==='=')focus?setFocus(true,page+1):$('zIn').click();else if(k==='-'||k==='_')focus?setFocus(true,page-1):$('zOut').click();else if(k===']')$('zIn').click();else if(k==='[')$('zOut').click();else if(k==='p'||k==='P')setFocus(!focus);
+  else if(k==='+'||k==='=')focus?setFocus(true,page+1):$('zIn').click();else if(k==='-'||k==='_')focus?setFocus(true,page-1):$('zOut').click();else if(k===']')$('zIn').click();else if(k==='[')$('zOut').click();else if(k==='p'||k==='P')setFocus(!focus);
   else if(k==='0')fit();else if(k==='Escape'){sel.clear();selChanged();$('help').classList.remove('show');}else if(k==='?')$('helpBtn').click();
   else if(k.startsWith('Arrow')){const d=120,b=target||view;target={...b,x:b.x+(k==='ArrowLeft'?d:k==='ArrowRight'?-d:0),y:b.y+(k==='ArrowUp'?d:k==='ArrowDown'?-d:0)};draw();}else return;e.preventDefault();});
 let t0='dark';try{t0=localStorage.getItem('deerchart:theme')||'dark'}catch(e){}theme(t0);$('legBtn').classList.add('on');
