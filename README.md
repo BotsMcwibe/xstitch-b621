@@ -7,6 +7,14 @@ Pages (served by GitHub Pages; all of them load `data/bundle.json`):
 - `review.html`, **Review:** the cells the classifier was least sure about, with the scan crop, the best guess and the second guess. Choices are saved in your browser (localStorage), applied by the viewer, and can be exported or imported as JSON.
 - `compare.html`, **Compare:** the cover picture next to a colour redraw of the chart data.
 
+## Viewer (`index.html`)
+
+The top bar holds only the page arrows (‹ N/16 ›), the zoom presets (Fit, 12, 24, 40 px per stitch) and the light/dark toggle. The legend is the floating pill at the bottom right. Page focus is on by default (page 10).
+
+Keyboard: `+`/`−` page (or zoom outside focus), `[` `]` zoom, `0` fit, `P` page focus, `T` theme, `L` legend, `F` fullscreen, `O` low-confidence outline, `G` row/col jump, `?` help, `Esc` clear selection.
+
+**Dev mode** adds a ☰ menu to the top bar with the extra controls (focus toggle, low-confidence outline, row/col jump, fullscreen, help, links to review/compare/symbols). Turn it on with `index.html?dev`, `?dev=1` or `#dev`; it is remembered in localStorage until you open `index.html?dev=0`.
+
 ## Licence
 - The code (HTML/JS/CSS and `scripts/`) is MIT licensed; see `LICENSE`.
 - The chart design, symbol key and cover picture belong to the original pattern publisher. The derived data in `data/` is shared only as a personal stitching aid and is **not** covered by the MIT licence. No full-page scans are included.

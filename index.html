@@ -42,27 +42,24 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
  #status{top:calc(52px + env(safe-area-inset-top));bottom:auto;left:calc(6px + env(safe-area-inset-left));right:auto;max-width:calc(100vw - 12px);font-size:11.5px;padding:3px 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
  #help{top:calc(52px + env(safe-area-inset-top));left:6px;right:6px}
 }
-#zSeg .zth{border-top:1px solid var(--grid10);font-size:11px;padding:6px 4px}
+#bar{flex-wrap:nowrap!important;max-width:calc(100vw - 20px)!important;gap:6px}#bar button{display:inline-flex;align-items:center;justify-content:center}#pgLbl{min-width:3.4em;text-align:center}
+#unused{position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));width:30px;height:30px;border-radius:50%;padding:0;opacity:.6;font-weight:600;z-index:4}#helpFab:hover{opacity:1}
+#legTab{top:auto!important;bottom:calc(10px + env(safe-area-inset-bottom));right:calc(10px + env(safe-area-inset-right));writing-mode:horizontal-tb!important;padding:6px 12px}
+#devMenu[hidden],#fsTop[hidden]{display:none!important}#help{max-width:min(560px,calc(100vw - 24px))}
+@media (max-width:700px){#bar{right:auto!important;gap:4px}#bar button{min-width:30px;padding:4px 6px}#zSeg button{padding:4px 7px}}
 </style></head><body>
 <canvas id="cv"></canvas>
 <div id="bar" class="panel">
- <button id="minBtn" title="Menu / collapse toolbar" aria-label="Menu">☰</button><span class="t">Deer chart</span>
- <span class="full sep"></span>
- <span class="full grp seg" id="zSeg" title="Zoom presets (wheel, pinch and [ ] still zoom freely)"><button data-z="fit" title="Fit page / chart (0)">Fit</button><button data-z="12" title="12 px per stitch">12</button><button data-z="24" title="24 px per stitch">24</button><button data-z="40" title="40 px per stitch">40</button></span>
- <span class="full sep"></span>
- <span class="full grp"><button id="focBtn" title="Focus on one printed page (P)" aria-label="Page focus">▣<span class="lbl"> Page focus</span></button><span id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page">‹</button><b id="pgLbl"><span class="lbl">Page </span><span id="pgN">1</span> / 16</b><button id="pgNext" title="Next page (+)" aria-label="Next page">›</button></span></span>
- <button class="full" id="legBtn" title="Legend (L)" aria-label="Legend">▤ <span id="legSel">All</span></button>
- <span class="full sep ovf"></span>
- <label class="full ovf"><input type="checkbox" id="lowChk"> Low confidence</label>
- <span class="full ovf">Row <input id="gr" type="number" min="1"> Col <input id="gc" type="number" min="1"> <button id="goBtn">Go</button></span>
- <span class="full sep ovf"></span>
- <button class="full ovf" id="themeBtn" title="Light / dark (T)">Light</button>
- <button class="full ovf" id="fsBtn" title="Fullscreen (F)">⛶ Fullscreen</button>
- <button class="full ovf" id="helpBtn" title="Keyboard and touch help (?)">?</button>
- <nav class="full ovf"><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
+ <span class="grp" id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page">‹</button><b id="pgLbl"><span id="pgN">1</span>/16</b><button id="pgNext" title="Next page (+)" aria-label="Next page">›</button></span>
+ <span class="grp seg" id="zSeg" title="Zoom presets (wheel, pinch and [ ] still zoom freely)"><button data-z="fit" title="Fit page / chart (0)" aria-label="Fit"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4"/></svg></button><button data-z="12" title="12 px per stitch">12</button><button data-z="24" title="24 px per stitch">24</button><button data-z="40" title="40 px per stitch">40</button></span>
+ <button id="devMenu" title="Dev menu: extra controls and help (?)" aria-label="Menu" hidden>☰</button>
+ <button id="themeBtn" title="Light / dark (T)" aria-label="Light / dark"></button>
+ <button id="fsTop" title="Fullscreen (F)" aria-label="Fullscreen" hidden><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2l-4.5 4.5M6 14H2v-4M2 14l4.5-4.5"/></svg></button>
 </div>
+<div hidden><button id="minBtn"></button><button id="focBtn"></button><button id="legBtn"><span id="legSel">All</span></button><button id="fsBtn"></button><button id="helpBtn"></button></div>
+
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
-<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · Zoom presets: Fit · 12 · 24 · 40 px per stitch · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout): the page is outlined; the selection is kept when you change page. It is on by default (page 10).</div>
+<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · Zoom presets: Fit · 12 · 24 · 40 px per stitch · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection / close help · <kbd>O</kbd> low-confidence outline · <kbd>G</kbd> jump to row/col · <kbd>?</kbd> this help<br>Page focus shows one printed page (4×4 layout): the page is outlined; the selection is kept when you change page. It is on by default (page 10).<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><label><input type="checkbox" id="lowChk"> Low-confidence outline (<kbd>O</kbd>)</label> <span>Row <input id="gr" type="number" min="1" style="width:4em"> Col <input id="gc" type="number" min="1" style="width:4em"> <button id="goBtn">Go</button> (<kbd>G</kbd>)</span> <button id="fsBtn2">⛶ Fullscreen (F)</button> <button id="focBtn2">Page focus on/off (P)</button></div><nav style="margin-top:6px"><a href="review.html">Review</a> · <a href="compare.html">Compare</a> · <a href="symbols.html">Symbols</a></nav></div>
 <div id="leg" class="panel"><div id="legHead"><b>Legend</b><span style="flex:1"></span><button id="legClose" title="Hide legend (L)">×</button></div><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips currently shown">Select shown</button><span id="selSum"></span></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" hidden></div><div id="tip" class="panel"></div>
@@ -75,7 +72,7 @@ let B=null,K={},grid=null,R=0,C=0,mode='sym' /* colours mode removed: always sym
 let view={s:8,x:0,y:0},target=null,raf=0;
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 let TH={};function theme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('deerchart:theme',t)}catch(e){}
-  $('themeBtn').textContent=t==='dark'?'Light':'Dark';TH={bg:css('--bg'),cell:css('--cell'),sym:css('--sym'),grid:css('--grid'),grid10:css('--grid10'),acc:css('--acc'),acc2:css('--acc2'),fg:css('--fg'),mut:css('--mut')};tilesReset();draw();}
+  $('themeBtn').innerHTML=t==='dark'?'<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3"/></svg>':'<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M13.5 10.2A6 6 0 0 1 5.8 2.5 6 6 0 1 0 13.5 10.2z"/></svg>';TH={bg:css('--bg'),cell:css('--cell'),sym:css('--sym'),grid:css('--grid'),grid10:css('--grid10'),acc:css('--acc'),acc2:css('--acc2'),fg:css('--fg'),mut:css('--mut')};tilesReset();draw();}
 function lum(h){const n=parseInt(h.slice(1),16);return 0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255);}
 const isDark=()=>document.documentElement.dataset.theme==='dark';
 const isOn=nr=>!sel.size||sel.has(nr);
@@ -159,16 +156,14 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
   if(!lastMiss){if(snap.width!==W||snap.height!==H){snap.width=W;snap.height=H;}snap.getContext('2d').drawImage(cv,0,0);snapV={...view};}
 }
 let mark=null,tipT=0;
-const thHome=document.createComment('th');function placeSeg(){const z=$('zSeg'),narrow=innerWidth<=700,tb=$('themeBtn');if(!thHome.parentNode)tb.before(thHome);
-  if(narrow&&tb.parentNode!==z){z.appendChild(tb);tb.classList.add('zth');}else if(!narrow&&tb.parentNode===z){thHome.after(tb);tb.classList.remove('zth');}const z_=0;
-  if(narrow&&z.parentNode!==document.body){document.body.appendChild(z);z.classList.add('panel','side');}else if(!narrow&&z.parentNode===document.body){$('focBtn').parentNode.before(z);z.classList.remove('panel','side');}}
+function placeSeg(){}
 let rzT=0;function resize(){placeSeg();clearTimeout(rzT);rzT=setTimeout(()=>{if(B&&zp==='fit')fit(false);},150);dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();tilesReset();draw();}
 addEventListener('resize',resize);
 function clampS(s){return Math.min(MAXPX,Math.max(innerWidth<=700?0.9:MINPX,s));}
 function zoomAt(f,mx,my,smooth=true){const b=target||view,ns=clampS(b.s*f);const t={s:ns,x:mx-(mx-b.x)*ns/b.s,y:my-(my-b.y)*ns/b.s};if(smooth){target=t;}else{view=t;target=null;}draw();}
 function avail(){const narrow=innerWidth<=700,legOpen=!$('leg').classList.contains('hide');const top=(narrow?56:72),
   leg=legOpen?(narrow?$('leg').getBoundingClientRect().height||innerHeight*0.5:0):0,legW=legOpen&&!narrow?288:0;
-  return {x:12,y:top,w:innerWidth-legW-24-(narrow?46:0),h:innerHeight-top-leg-(narrow?12:20)};}
+  return {x:12,y:top,w:innerWidth-legW-24,h:innerHeight-top-leg-(narrow?12:20)};}
 function fitRect(r0,c0,r1,c1,smooth=true){const a=avail();const s=clampS(Math.min(a.w/(c1-c0),a.h/(r1-r0)));
   const t={s,x:a.x+(a.w-(c1-c0)*s)/2-c0*s,y:a.y+(a.h-(r1-r0)*s)/2-r0*s};if(smooth)target=t;else{view=t;target=null;}draw();}
 function setFocus(on,n=page,smooth=true,keep=false){const prevV={...view};focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'inline-flex':'none';
@@ -236,14 +231,18 @@ const togLeg=()=>{$('leg').classList.toggle('hide');if(B&&focus&&innerWidth<=700
 $('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('selClr').onclick=()=>{sel.clear();selChanged();};$('selInv').onclick=()=>{sel=new Set(B.key.map(k=>k.nr).filter(n=>!sel.has(n)));selChanged();};$('selVis').onclick=()=>{const f='';const PC=focus&&FR?pageCounts():null;B.key.forEach(k=>{if(PC&&!PC[k.nr])return;if(!f||String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f))sel.add(k.nr);});selChanged();};
 $('themeBtn').onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 const fsToggle=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{});};
-$('fsBtn').onclick=fsToggle;document.addEventListener('fullscreenchange',()=>{$('fsBtn').classList.toggle('on',!!document.fullscreenElement);});
-$('minBtn').onclick=()=>$('bar').classList.toggle(innerWidth<=700?'menu':'min');$('helpBtn').onclick=()=>$('help').classList.toggle('show');
+$('fsBtn').onclick=$('fsTop').onclick=fsToggle;$('fsTop').hidden=!(document.fullscreenEnabled&&document.documentElement.requestFullscreen);document.addEventListener('fullscreenchange',()=>{const on=!!document.fullscreenElement;$('fsTop').innerHTML=on?'<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5v4h4M9.5 6.5L14 2M6.5 13.5v-4h-4M6.5 9.5L2 14"/></svg>':'<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2l-4.5 4.5M6 14H2v-4M2 14l4.5-4.5"/></svg>';$('fsTop').title=on?'Exit fullscreen (F)':'Fullscreen (F)';$('fsBtn').classList.toggle('on',!!document.fullscreenElement);});
+$('minBtn').onclick=()=>$('bar').classList.toggle(innerWidth<=700?'menu':'min');$('helpBtn').onclick=$('devMenu').onclick=()=>$('help').classList.toggle('show');$('fsBtn2').onclick=()=>$('fsBtn').click();$('focBtn2').onclick=()=>$('focBtn').click();
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
   if(k==='f'||k==='F')fsToggle();else if(k==='l'||k==='L')togLeg();else if(k==='t'||k==='T')$('themeBtn').click();
   else if(k==='+'||k==='=')focus?setFocus(true,page+1):zIn();else if(k==='-'||k==='_')focus?setFocus(true,page-1):zOut();else if(k===']')zIn();else if(k==='[')zOut();else if(k==='p'||k==='P')setFocus(!focus);
-  else if(k==='0')preset('fit');else if(k==='Escape'){sel.clear();selChanged();$('help').classList.remove('show');}else if(k==='?')$('helpBtn').click();
+  else if(k==='0')preset('fit');else if(k==='Escape'){sel.clear();selChanged();$('help').classList.remove('show');}else if(k==='?'||k==='h'||k==='H')$('helpBtn').click();else if(k==='o'||k==='O'){$('lowChk').click();}else if(k==='g'||k==='G'){$('help').classList.add('show');$('gr').focus();}
   else if(k.startsWith('Arrow')){const d=120,b=target||view;target={...b,x:b.x+(k==='ArrowLeft'?d:k==='ArrowRight'?-d:0),y:b.y+(k==='ArrowUp'?d:k==='ArrowDown'?-d:0)};draw();}else return;e.preventDefault();});
 let t0='dark';try{t0=localStorage.getItem('deerchart:theme')||'dark'}catch(e){}theme(t0);$('legBtn').classList.add('on');
 if(innerWidth<700)$('leg').classList.add('hide');
+// dev mode: ?dev, ?dev=1 or #dev turns it on (remembered), ?dev=0 turns it off
+{const q=new URLSearchParams(location.search);let dev=false;try{dev=localStorage.getItem('deerchart:dev')==='1'}catch(e){}
+ if(q.has('dev'))dev=q.get('dev')!=='0';if(location.hash==='#dev')dev=true;try{localStorage.setItem('deerchart:dev',dev?'1':'0')}catch(e){}
+ $('devMenu').hidden=!dev;document.body.classList.toggle('dev',dev);}
 start(onLoad);resize();
 </script></body></html>
