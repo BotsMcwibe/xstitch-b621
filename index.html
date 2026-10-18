@@ -1,4 +1,4 @@
-<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><title>Chart viewer</title>
+<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8"><title>Chart viewer</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <style>
 :root{--selbg:#f2f2f2;--selfg:#111;--selinv:none;--bg:#121417;--panel:rgba(28,31,36,.94);--fg:#e6e6e6;--mut:#9aa0a6;--line:#3a3f46;--cell:#1c1f24;--sym:#e9e9e9;--grid:rgba(255,255,255,.13);--grid10:rgba(255,255,255,.38);--acc:#E69F00;--acc2:#56B4E9;--btn:#2a2e35}
@@ -46,15 +46,24 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #unused{position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));width:30px;height:30px;border-radius:50%;padding:0;opacity:.6;font-weight:600;z-index:4}#helpFab:hover{opacity:1}
 #legTab{top:auto!important;bottom:calc(10px + env(safe-area-inset-bottom));right:calc(10px + env(safe-area-inset-right));writing-mode:horizontal-tb!important;padding:6px 12px}
 #selSum{order:9;flex-basis:100%}#legClose{margin-left:auto;padding:2px 9px}#devMenu[hidden],#fsTop[hidden]{display:none!important}#help{max-width:min(560px,calc(100vw - 24px))}
-@media (max-width:700px){#bar{right:auto!important;gap:4px}#bar button{min-width:30px;padding:4px 6px}#zSeg button{padding:4px 7px}}
+@media (max-width:700px){#bar button{min-width:30px;padding:4px 6px}#zSeg button{padding:4px 7px}}
+
+/* vertical floating sidebar (right edge) */
+#bar{position:fixed;top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right));left:auto!important;bottom:auto;display:flex!important;flex-direction:column;gap:6px;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;max-width:none!important;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;z-index:5}
+#bar::-webkit-scrollbar{display:none}
+#bar .pill{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.3);backdrop-filter:blur(6px);padding:2px;flex:none}
+#bar .pill[hidden]{display:none!important}
+#bar .pill button{width:34px;height:30px;min-width:0!important;padding:0!important;margin:0!important;border-radius:9px!important;border:0;display:flex;align-items:center;justify-content:center;font-size:12px}
+#bar .seg button+button{margin-top:1px!important}
+@media (max-height:480px){#bar{gap:4px}#bar .pill button{height:26px;width:32px}}
 </style></head><body>
 <canvas id="cv"></canvas>
-<div id="bar" class="panel">
- <span class="grp" id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page">‹</button><b id="pgLbl"><span id="pgN">1</span>/16</b><button id="pgNext" title="Next page (+)" aria-label="Next page">›</button></span>
- <span class="grp seg" id="zSeg" title="Zoom presets (wheel, pinch and [ ] still zoom freely)"><button data-z="fit" title="Fit page / chart (0)" aria-label="Fit"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4"/></svg></button><button data-z="12" title="12 px per stitch">12</button><button data-z="24" title="24 px per stitch">24</button><button data-z="40" title="40 px per stitch">40</button></span>
- <button id="devMenu" title="Dev menu: extra controls and help (?)" aria-label="Menu" hidden>☰</button>
- <button id="themeBtn" title="Light / dark (T)" aria-label="Light / dark"></button>
- <button id="fsTop" title="Fullscreen (F)" aria-label="Fullscreen" hidden><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2l-4.5 4.5M6 14H2v-4M2 14l4.5-4.5"/></svg></button>
+<div id="bar">
+ <span class="pill" id="devPill" hidden><button id="devMenu" title="Dev menu: extra controls and help (?)" aria-label="Menu">☰</button></span>
+ <span class="pill" id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10l4.5-4.5 4.5 4.5"/></svg></button><span id="pgN" hidden>1</span><button id="pgNext" title="Next page (+)" aria-label="Next page"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6l4.5 4.5 4.5-4.5"/></svg></button></span>
+ <span class="pill seg" id="zSeg" title="Zoom presets (wheel, pinch and [ ] still zoom freely)"><button data-z="fit" title="Fit page / chart (0)" aria-label="Fit"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4"/></svg></button><button data-z="12" title="12 px per stitch">12</button><button data-z="24" title="24 px per stitch">24</button><button data-z="40" title="40 px per stitch">40</button></span>
+ <span class="pill"><button id="themeBtn" title="Light / dark (T)" aria-label="Light / dark"></button></span>
+ <span class="pill" id="fsPill"><button id="fsTop" title="Fullscreen (F)" aria-label="Fullscreen" hidden><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2l-4.5 4.5M6 14H2v-4M2 14l4.5-4.5"/></svg></button></span>
 </div>
 <div hidden><button id="minBtn"></button><button id="focBtn"></button><button id="legBtn"><span id="legSel">All</span></button><button id="fsBtn"></button><button id="helpBtn"></button></div>
 
@@ -166,12 +175,15 @@ function avail(){const narrow=innerWidth<=700,legOpen=!$('leg').classList.contai
   return {x:12,y:top,w:innerWidth-legW-24,h:innerHeight-top-leg-(narrow?12:20)};}
 function fitRect(r0,c0,r1,c1,smooth=true){const a=avail();const s=clampS(Math.min(a.w/(c1-c0),a.h/(r1-r0)));
   const t={s,x:a.x+(a.w-(c1-c0)*s)/2-c0*s,y:a.y+(a.h-(r1-r0)*s)/2-r0*s};if(smooth)target=t;else{view=t;target=null;}draw();}
-function setFocus(on,n=page,smooth=true,keep=false){const prevV={...view};focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'inline-flex':'none';
+function setFocus(on,n=page,smooth=true,keep=false){const prevV={...view};focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'flex':'none';
   $('pgN').textContent=page;if(B)legend();if(focus&&!keep){fit(false);if(zp&&zp!=='fit')preset(zp,false);else if(smooth){const t=view;view=prevV||view;target=t;}}status();save();draw();}
 function fit(smooth=true){if(!B)return;if(focus&&FR)return fitRect(FR.m0r,FR.m0c,FR.m1r,FR.m1c,smooth);fitRect(0,0,R,C,smooth);}
 function pageCounts(){const n={};for(let r=FR.r0;r<FR.r1;r++)for(let q=FR.c0;q<FR.c1;q++){const v=grid[r*C+q];n[v]=(n[v]||0)+1;}return n;}
 // chip grid capped at exactly 3 chip rows; the rest scrolls inside it
-function capLeg(){const el=$('legList'),ch=el.querySelector('.chip');if(!ch)return;const cs=getComputedStyle(el),g=parseFloat(cs.rowGap)||4;
+function layBar(){const b=$('bar'),L=$('leg'),open=!L.classList.contains('hide'),narrow=innerWidth<=700;b.style.right='';b.style.maxHeight='';
+  if(open&&!narrow){b.style.right=`calc(${innerWidth-L.getBoundingClientRect().left+8}px + 0px)`;}
+  if(open&&narrow){b.style.maxHeight=Math.max(80,L.getBoundingClientRect().top-b.getBoundingClientRect().top-8)+'px';}else b.style.maxHeight=`calc(100vh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 44px)`;}
+function capLeg(){setTimeout(layBar,0);const el=$('legList'),ch=el.querySelector('.chip');if(!ch)return;const cs=getComputedStyle(el),g=parseFloat(cs.rowGap)||4;
   el.style.flex='none';el.style.maxHeight=(3*ch.offsetHeight+2*g+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom))+'px';}
 function legend(){setTimeout(capLeg,0);const f='';const el=$('legList');el.innerHTML='';const PC=focus&&FR?pageCounts():null;
   const CC=PC||CNT,keys=[...B.key].sort((a,b)=>(CC[b.nr]||0)-(CC[a.nr]||0)||a.nr-b.nr); // most used first
@@ -230,22 +242,22 @@ $('lowChk').onchange=e=>{showLow=e.target.checked;draw();};
 $('goBtn').onclick=()=>{const r=+$('gr').value,c=+$('gc').value;if(!B||!(r>=1&&r<=R&&c>=1&&c<=C))return;const s=Math.max(view.s,28);
   mark={r:r-1,c:c-1};target={s,x:innerWidth/2-(c-0.5)*s,y:innerHeight/2-(r-0.5)*s};draw();setTimeout(()=>{mark=null;draw();},2500);};
 ['gr','gc'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').click();}));
-const togLeg=()=>{$('leg').classList.toggle('hide');if(B&&focus&&innerWidth<=700)setTimeout(()=>fit(),220);document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
+const togLeg=()=>{setTimeout(layBar,230);$('leg').classList.toggle('hide');if(B&&focus&&innerWidth<=700)setTimeout(()=>fit(),220);document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
 $('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('selClr').onclick=()=>{sel.clear();selChanged();};$('selInv').onclick=()=>{sel=new Set(B.key.map(k=>k.nr).filter(n=>!sel.has(n)));selChanged();};$('selVis').onclick=()=>{const f='';const PC=focus&&FR?pageCounts():null;B.key.forEach(k=>{if(PC&&!PC[k.nr])return;if(!f||String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f))sel.add(k.nr);});selChanged();};
 $('themeBtn').onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 const fsToggle=()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.().catch(()=>{});};
-$('fsBtn').onclick=$('fsTop').onclick=fsToggle;$('fsTop').hidden=!(document.fullscreenEnabled&&document.documentElement.requestFullscreen);document.addEventListener('fullscreenchange',()=>{const on=!!document.fullscreenElement;$('fsTop').innerHTML=on?'<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5v4h4M9.5 6.5L14 2M6.5 13.5v-4h-4M6.5 9.5L2 14"/></svg>':'<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2l-4.5 4.5M6 14H2v-4M2 14l4.5-4.5"/></svg>';$('fsTop').title=on?'Exit fullscreen (F)':'Fullscreen (F)';$('fsBtn').classList.toggle('on',!!document.fullscreenElement);});
+$('fsBtn').onclick=$('fsTop').onclick=fsToggle;$('fsPill').hidden=!(document.fullscreenEnabled&&document.documentElement.requestFullscreen);document.addEventListener('fullscreenchange',()=>{const on=!!document.fullscreenElement;$('fsTop').innerHTML=on?'<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5v4h4M9.5 6.5L14 2M6.5 13.5v-4h-4M6.5 9.5L2 14"/></svg>':'<svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2l-4.5 4.5M6 14H2v-4M2 14l4.5-4.5"/></svg>';$('fsTop').title=on?'Exit fullscreen (F)':'Fullscreen (F)';$('fsBtn').classList.toggle('on',!!document.fullscreenElement);});
 $('minBtn').onclick=()=>$('bar').classList.toggle(innerWidth<=700?'menu':'min');$('helpBtn').onclick=$('devMenu').onclick=()=>$('help').classList.toggle('show');$('fsBtn2').onclick=()=>$('fsBtn').click();$('focBtn2').onclick=()=>$('focBtn').click();
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
   if(k==='f'||k==='F')fsToggle();else if(k==='l'||k==='L')togLeg();else if(k==='t'||k==='T')$('themeBtn').click();
   else if(k==='+'||k==='=')focus?setFocus(true,page+1):zIn();else if(k==='-'||k==='_')focus?setFocus(true,page-1):zOut();else if(k===']')zIn();else if(k==='[')zOut();else if(k==='p'||k==='P')setFocus(!focus);
   else if(k==='0')preset('fit');else if(k==='Escape'){sel.clear();selChanged();$('help').classList.remove('show');}else if(k==='?'||k==='h'||k==='H')$('helpBtn').click();else if(k==='o'||k==='O'){$('lowChk').click();}else if(k==='g'||k==='G'){$('help').classList.add('show');$('gr').focus();}
   else if(k.startsWith('Arrow')){const d=120,b=target||view;target={...b,x:b.x+(k==='ArrowLeft'?d:k==='ArrowRight'?-d:0),y:b.y+(k==='ArrowUp'?d:k==='ArrowDown'?-d:0)};draw();}else return;e.preventDefault();});
-let t0='dark';try{t0=localStorage.getItem('deerchart:theme')||'dark'}catch(e){}theme(t0);$('legBtn').classList.add('on');
+let t0='light';try{t0=localStorage.getItem('deerchart:theme')||'light'}catch(e){}theme(t0);$('legBtn').classList.add('on');
 if(innerWidth<700)$('leg').classList.add('hide');
 // dev mode: ?dev, ?dev=1 or #dev turns it on (remembered), ?dev=0 turns it off
 {const q=new URLSearchParams(location.search);let dev=false;try{dev=localStorage.getItem('deerchart:dev')==='1'}catch(e){}
  if(q.has('dev'))dev=q.get('dev')!=='0';if(location.hash==='#dev')dev=true;try{localStorage.setItem('deerchart:dev',dev?'1':'0')}catch(e){}
- $('devMenu').hidden=!dev;document.body.classList.toggle('dev',dev);}
+ $('devPill').hidden=!dev;document.body.classList.toggle('dev',dev);}
 start(onLoad);resize();
 </script></body></html>
