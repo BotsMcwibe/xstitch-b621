@@ -45,7 +45,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #bar{flex-wrap:nowrap!important;max-width:calc(100vw - 20px)!important;gap:6px}#bar button{display:inline-flex;align-items:center;justify-content:center}#pgLbl{min-width:3.4em;text-align:center}
 #unused{position:fixed;left:calc(10px + env(safe-area-inset-left));bottom:calc(10px + env(safe-area-inset-bottom));width:30px;height:30px;border-radius:50%;padding:0;opacity:.6;font-weight:600;z-index:4}#helpFab:hover{opacity:1}
 #legTab{top:auto!important;bottom:calc(10px + env(safe-area-inset-bottom));right:calc(10px + env(safe-area-inset-right));writing-mode:horizontal-tb!important;padding:6px 12px}
-#devMenu[hidden],#fsTop[hidden]{display:none!important}#help{max-width:min(560px,calc(100vw - 24px))}
+#selSum{order:9;flex-basis:100%}#legClose{margin-left:auto;padding:2px 9px}#devMenu[hidden],#fsTop[hidden]{display:none!important}#help{max-width:min(560px,calc(100vw - 24px))}
 @media (max-width:700px){#bar{right:auto!important;gap:4px}#bar button{min-width:30px;padding:4px 6px}#zSeg button{padding:4px 7px}}
 </style></head><body>
 <canvas id="cv"></canvas>
@@ -60,7 +60,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
 <kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · Zoom presets: Fit · 12 · 24 · 40 px per stitch · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection / close help · <kbd>O</kbd> low-confidence outline · <kbd>G</kbd> jump to row/col · <kbd>?</kbd> this help<br>Page focus shows one printed page (4×4 layout): the page is outlined; the selection is kept when you change page. It is on by default (page 10).<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><label><input type="checkbox" id="lowChk"> Low-confidence outline (<kbd>O</kbd>)</label> <span>Row <input id="gr" type="number" min="1" style="width:4em"> Col <input id="gc" type="number" min="1" style="width:4em"> <button id="goBtn">Go</button> (<kbd>G</kbd>)</span> <button id="fsBtn2">⛶ Fullscreen (F)</button> <button id="focBtn2">Page focus on/off (P)</button></div><nav style="margin-top:6px"><a href="review.html">Review</a> · <a href="compare.html">Compare</a> · <a href="symbols.html">Symbols</a></nav></div>
-<div id="leg" class="panel"><div id="legHead"><b>Legend</b><span style="flex:1"></span><button id="legClose" title="Hide legend (L)">×</button></div><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips currently shown">Select shown</button><span id="selSum"></span></div><div id="legList"></div></div>
+<div id="leg" class="panel"><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips currently shown">Select shown</button><span id="selSum"></span><button id="legClose" title="Hide legend (L)" aria-label="Close legend">×</button></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" hidden></div><div id="tip" class="panel"></div>
 <script type="module">
