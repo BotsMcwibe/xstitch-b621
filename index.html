@@ -18,13 +18,13 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
 #legFilter{flex:1;min-width:0}#legList{overflow:auto;padding:8px;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:4px;align-content:start}
 #selBar{padding:6px 10px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px}#selBar button{padding:2px 8px;font-size:12px}#selSum{width:100%;color:var(--mut)}
 .chip{position:relative;padding:3px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:7px;min-width:0}.chip img{width:26px;height:26px;background:#fff;border-radius:4px;padding:1px}.chip .cn{font-size:11px;font-variant-numeric:tabular-nums;color:var(--mut)}.chip .cs{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px}
-.chip .pc{display:block;font-size:9.5px;line-height:1;opacity:.85}#legBtn{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}#legSel{display:inline-flex;gap:2px;align-items:center;vertical-align:middle}#legSel img.mini{width:16px;height:16px;background:#fff;filter:var(--selinv);border-radius:3px;padding:1px}#legSel .more{font-size:12px;margin-left:2px}
+.chip .pc{display:block;font-size:9.5px;line-height:1;opacity:.85}#legBtn{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}#legTab .legSel,#legSel{display:inline-flex;gap:2px;align-items:center;vertical-align:middle}#legTab img.mini,#legSel img.mini{width:16px;height:16px;background:#fff;filter:var(--selinv);border-radius:3px;padding:1px}#legSel .more{font-size:12px;margin-left:2px}
 .chip.on img{filter:var(--selinv)}.chip.on{background:var(--selbg)!important;outline:2.5px solid var(--acc);outline-offset:-2px;background:rgba(127,127,127,.22)}.chip.on .cn{color:var(--selfg);font-weight:700}
 .row{display:grid;grid-template-columns:26px 22px 26px 1fr;gap:6px;align-items:center;padding:4px 6px;border-radius:8px;cursor:pointer}
 .row:hover{background:rgba(127,127,127,.15)}.row.on{outline:2px solid var(--acc)}
 .row .sw{width:20px;height:20px;border-radius:4px;border:1px solid rgba(127,127,127,.6)}.row img{width:24px;height:24px;background:#fff;border-radius:4px;padding:1px}
 .row small{color:var(--mut)}.mm{color:var(--acc)}.nr{font-variant-numeric:tabular-nums;text-align:right;color:var(--mut)}
-#legTab{top:50%;right:10px;padding:10px 6px;writing-mode:vertical-rl;display:none;cursor:pointer}
+#legTab{top:50%;right:10px;padding:6px 10px;display:none;cursor:pointer}
 #leg.hide~#legTab{display:block}
 #status{left:10px;bottom:10px;padding:6px 12px;font-size:13px;color:var(--mut);max-width:calc(100vw - 20px)}#status b{color:var(--fg)}
 #tip{position:fixed;pointer-events:none;display:none;padding:6px 9px;font-size:13px;border-radius:8px;z-index:5}
@@ -130,7 +130,7 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
   for(let r=Math.ceil(r0/step)*step;r<=r1;r+=step)if(r>0)ctx.fillText(r,tx,oy+r*s+fs/3);
 }
 let mark=null,tipT=0;
-function resize(){dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();chart=null;draw();}
+let rzT=0;function resize(){clearTimeout(rzT);rzT=setTimeout(()=>{if(B&&zp==='fit')fit(false);},150);dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();chart=null;draw();}
 addEventListener('resize',resize);
 function clampS(s){return Math.min(MAXPX,Math.max(innerWidth<=700?0.9:MINPX,s));}
 function zoomAt(f,mx,my,smooth=true){const b=target||view,ns=clampS(b.s*f);const t={s:ns,x:mx-(mx-b.x)*ns/b.s,y:my-(my-b.y)*ns/b.s};if(smooth){target=t;}else{view=t;target=null;}draw();}
@@ -154,8 +154,8 @@ function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('
   if(PC){const shown=Object.keys(PC).length,ps=(FR.r1-FR.r0)*(FR.c1-FR.c0),selP=[...sel].filter(n=>PC[n]),pt=selP.reduce((a,n)=>a+PC[n],0),hid=sel.size-selP.length;
     $('selSum').innerHTML=`Page ${page}: ${shown} symbols, ${ps.toLocaleString()} stitches`+(sel.size?`<br><b>${selP.length}</b> selected here · <b>${pt.toLocaleString()}</b> stitches on this page (${(100*pt/ps).toFixed(1)}%)`+(hid?` · ${hid} more selected, not on this page`:''):'');return;}
   $('selSum').innerHTML=sel.size?`<b>${sel.size}</b> selected · <b>${tot.toLocaleString()}</b> stitches (${(100*tot/(R*C)).toFixed(1)}%)`:`None selected · ${(R*C).toLocaleString()} stitches total`;}
-function legPill(CC){const el=$('legSel');if(!sel.size){el.textContent='All';return;}
-  const top=[...sel].sort((a,b)=>(CC[b]||0)-(CC[a]||0)||a-b);el.innerHTML=top.slice(0,5).map(n=>`<img class="mini" alt="${n}" title="#${n}" src="${symUrl(n)}">`).join('')+(top.length>5?`<span class="more">+${top.length-5}</span>`:'');}
+function legPill(CC){const el=$('legSel'),tab=$('legTab');if(!sel.size){el.textContent='All';tab.innerHTML='▤ All';return;}
+  const top=[...sel].sort((a,b)=>(CC[b]||0)-(CC[a]||0)||a-b);el.innerHTML=top.slice(0,5).map(n=>`<img class="mini" alt="${n}" title="#${n}" src="${symUrl(n)}">`).join('')+(top.length>5?`<span class="more">+${top.length-5}</span>`:'');tab.innerHTML='▤ <span class="legSel">'+el.innerHTML+'</span>';}
 function selChanged(){chart=null;legend();status();save();draw();}
 function status(){} // bottom info bar removed; selection total lives in the legend
 function cellAt(x,y){const q=Math.floor((x-view.x)/view.s),r=Math.floor((y-view.y)/view.s);return r>=0&&q>=0&&r<R&&q<C?{r,q}:null;}
@@ -166,8 +166,10 @@ async function onLoad(b){B=b;K=keyMap(b);R=b.grid.rows;C=b.grid.cols;await loadS
   lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*C+(c-1)));$('gr').max=R;$('gc').max=C;
   CNT={};grid.forEach(v=>CNT[v]=(CNT[v]||0)+1);legend();resize();
   let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'))}catch(e){}
-  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};zp=sv.zp===undefined?null:sv.zp;if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
-  segUI();status();draw();}
+  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};zp=sv.zp===undefined?(sv.focus?'fit':null):sv.zp; /* views saved before presets existed: refit the page */if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
+  segUI();status();draw();
+  // fit again once layout (toolbar, legend sheet state, safe areas) has settled
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{if(zp)preset(zp,false);}));setTimeout(()=>{if(zp)preset(zp,false);},400);}
 // ---- input: mouse, wheel, touch (pointer events with pinch)
 const P=new Map();let pan=null,pinch=null,moved=false,lastTap=0;
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);P.set(e.pointerId,{x:e.clientX,y:e.clientY});moved=false;target=null;
