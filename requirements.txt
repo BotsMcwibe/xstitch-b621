@@ -2,3 +2,5 @@ numpy
 opencv-python-headless
 pillow
 scikit-learn
+svgelements
+cairosvg

@@ -4,7 +4,14 @@
 .row.ok{border-color:#0072B2}.row.wrong,.row.tweak{border-color:#E69F00;border-style:dashed}
 .ex{position:relative;width:84px;height:84px}.ex img.scan{width:84px;height:84px;image-rendering:pixelated}.ex img.ov{position:absolute;left:6px;top:6px;width:72px;height:72px;opacity:.55;display:none;filter:invert(27%) sepia(90%) saturate(1500%) hue-rotate(185deg)}
 body.overlay .ex img.ov{display:block}.big{width:120px;height:120px;border:1px solid #999;background:#fff}.small{width:24px;height:24px;border:1px solid #999;background:#fff}
-.nr{font:700 20px system-ui;width:36px;text-align:right}.meta{width:230px}.st label{display:block}textarea{width:220px;height:46px}</style></head><body>
+.nr{font:700 20px system-ui;width:36px;text-align:right}.meta{width:230px}.st label{display:block}textarea{width:220px;height:46px}.ed{margin:8px;padding:10px;border:1px solid #bbb;border-radius:8px;background:#fafafa}.ed .btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#drop{margin-top:8px;border:2px dashed #888;border-radius:8px;padding:14px;text-align:center;color:#444;cursor:pointer}#drop.over{border-color:#0072B2;background:#e8f2fa}
+#upMsg{margin-top:6px;font-size:13px;white-space:pre-wrap}.warn{color:#9a4a00}.card{display:flex;flex-wrap:wrap;gap:14px;align-items:center;background:#fff;border:2px solid #0072B2;border-radius:6px;margin:6px 0;padding:8px}
+.card.same{border-color:#ccc}.pair{display:flex;gap:6px;align-items:flex-end}.pair figure{margin:0;text-align:center;font-size:11px}.pair img{width:96px;height:96px;border:1px solid #999;background:#fff}
+.ex2{position:relative;width:72px;height:72px}.ex2 img.scan{width:72px;height:72px;image-rendering:pixelated}.ex2 img.ov{position:absolute;left:5px;top:5px;width:62px;height:62px;opacity:.55;display:none;filter:invert(27%) sepia(90%) saturate(1500%) hue-rotate(185deg)}
+.card.ovon .ex2 img.ov{display:block}.sc{font:13px system-ui;min-width:170px}.sc b.up{color:#0072B2}.sc b.dn{color:#D55E00}canvas.patch{border:1px solid #999;image-rendering:auto}
+#sumTbl{border-collapse:collapse;margin-top:8px;font-size:13px}#sumTbl td,#sumTbl th{border:1px solid #ccc;padding:2px 8px;text-align:right}
+</style></head><body>
 <header><b>Symbol check</b><nav><a href="index.html">Viewer</a><a href="review.html">Review</a><a href="compare.html">Compare</a><a class="on" href="symbols.html">Symbols</a></nav>
 <label><input type="checkbox" id="ovChk"> Overlay the vector symbol (blue) on the scan crops</label>
 <label style="margin-left:1em">Design round <select id="rndSel"><option value="">current (active)</option><option value="r0">r0 (original)</option><option value="r1">r1</option><option value="r2">r2</option><option value="r3">r3</option></select></label>
@@ -12,6 +19,11 @@ body.overlay .ex img.ov{display:block}.big{width:120px;height:120px;border:1px s
 <button class="btn" id="copyBtn">Copy results</button><span id="copyMsg"></span><span id="prog"></span></header>
 <div id="statusbar"><span id="status"></span></div>
 <p style="padding:0 8px">For each key number: scan examples from the chart, the vector symbol at small and large size, and where it came from (a Unicode code point, or "custom" if drawn by hand). Mark each one OK / wrong / needs tweak and add a note if useful. Your choices are saved in this browser. "Copy results" puts a short summary on the clipboard to paste back.</p>
+<section class="ed" id="editor"><b>Edit the symbols in your own vector editor</b>
+<div class="btns" style="margin-top:6px"><button class="btn" id="dlAll">Download all SVGs (zip)</button><button class="btn" id="dlMine">Download my set (zip)</button><button class="btn" id="discard">Discard uploads</button>
+<label><input type="checkbox" id="onlyChg"> Show only changed symbols</label><a id="vLink" href="index.html?localsymbols">Preview my uploads in the viewer</a></div>
+<div id="drop">Drop edited .svg files or a .zip here, or click to choose. Files are matched by name: 01.svg, 1.svg or 01-anything.svg.<input type="file" id="upIn" multiple accept=".svg,.zip,image/svg+xml,application/zip" hidden></div>
+<div id="upMsg"></div><table id="sumTbl" hidden></table><div id="cards"></div></section>
 <div id="list"></div>
 <script type="module">
 import {start,keyMap} from './js/bundle.js';
@@ -36,5 +48,53 @@ function summary(){const g={ok:[],wrong:[],tweak:[]},notes=[],todo=[];
   return `SYMCHECK1|ok:${rng(g.ok)}|wrong:${rng(g.wrong)}|tweak:${rng(g.tweak)}|unchecked:${rng(todo)}|notes:${notes.join(';')}`;}
 document.getElementById('copyBtn').onclick=async()=>{const t=summary();try{await navigator.clipboard.writeText(t);document.getElementById('copyMsg').textContent=' Copied.';}
   catch(e){prompt('Copy this text:',t);}};
-start(onLoad);
+
+// ---------- symbol editing: download, upload, score, preview ----------
+import {makeZip,readZip} from './js/zip.js';
+import {flatSvg,README,sanitize,nrFromName,score,sameInk,getUploads,setUploads} from './js/symedit.js';
+const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
+let SYMJ=null,CUR={},IMG={},UPIMG={},SCORE={};
+const durl=svg=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+const img=src=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src;});
+async function edInit(){SYMJ=await (await fetch('symbols/symbols.json',{cache:'no-cache'})).json();
+  for(let n=1;n<=64;n++){CUR[n]=flatSvg(SYMJ[n]);IMG[n]=await img(durl(CUR[n]));}renderUploads();}
+function saveAs(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
+$('dlAll').onclick=()=>{const f=[{name:'symbols/README.txt',data:README}];for(let n=1;n<=64;n++)f.push({name:`symbols/${pad(n)}.svg`,data:CUR[n]});saveAs(makeZip(f),'chart-symbols.zip');};
+$('dlMine').onclick=()=>{const U=getUploads(),f=[{name:'symbols/README.txt',data:README+'\nUploaded overrides in this set: '+(Object.keys(U).sort((a,b)=>a-b).join(', ')||'none')+'\n'}];
+  for(let n=1;n<=64;n++)f.push({name:`symbols/${pad(n)}.svg`,data:U[n]?U[n].svg:CUR[n]});saveAs(makeZip(f),'my-chart-symbols.zip');};
+$('discard').onclick=()=>{if(!Object.keys(getUploads()).length||confirm('Discard all uploaded symbols stored in this browser?')){setUploads({});UPIMG={};SCORE={};$('upMsg').textContent='Uploads discarded.';renderUploads();}};
+$('onlyChg').onchange=renderUploads;
+const drop=$('drop');drop.onclick=()=>$('upIn').click();$('upIn').onchange=e=>handle([...e.target.files]);
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');};drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');handle([...e.dataTransfer.files]);};
+async function handle(files){const items=[],msg=[];
+  for(const f of files){if(/\.zip$/i.test(f.name)){try{for(const z of await readZip(await f.arrayBuffer()))if(/\.svg$/i.test(z.name)&&!/(^|\/)(__MACOSX|\.)/.test(z.name))items.push({name:z.name,text:new TextDecoder().decode(z.data)});}catch(e){msg.push(`${f.name}: ${e.message}`);}}
+    else if(/\.svg$/i.test(f.name))items.push({name:f.name,text:await f.text()});else msg.push(`${f.name}: skipped (not .svg or .zip)`);}
+  const U=getUploads();let ok=0;
+  for(const it of items){const nr=nrFromName(it.name);if(!nr){msg.push(`${it.name}: no symbol number in the file name, skipped`);continue;}
+    try{const {svg,warns}=sanitize(it.text);U[nr]={svg,name:it.name.split('/').pop(),warns,at:Date.now()};delete SCORE[nr];delete UPIMG[nr];ok++;if(warns.length)msg.push(`#${nr} ${it.name}: ${warns.join('; ')}`);}
+    catch(e){msg.push(`${it.name}: ${e.message}, skipped`);}}
+  try{setUploads(U);}catch(e){msg.push('Could not store uploads in this browser: '+e.message);}
+  $('upMsg').innerHTML=`<b>${ok} symbol${ok===1?'':'s'} loaded.</b>`+(msg.length?'\n<span class="warn">'+msg.map(m=>m.replace(/</g,'&lt;')).join('\n')+'</span>':'');renderUploads();}
+function spot(nr){const R=B.grid.rows,C=B.grid.cols,g=B.grid.nr;let best=null,bv=-1,seen=0;
+  for(let i=0;i<g.length&&seen<600;i++){if(g[i]!==nr)continue;seen++;const r=(i/C)|0,q=i%C;if(r<2||q<3||r>R-3||q>C-4)continue;const set=new Set();
+    for(let y=-2;y<=2;y++)for(let x=-3;x<=3;x++)set.add(g[(r+y)*C+q+x]);if(set.size>bv){bv=set.size;best={r,q};}}return best;}
+function patch(nr,px){const c=document.createElement('canvas'),W=7,H=5,d=window.devicePixelRatio||1;c.width=W*px*d;c.height=H*px*d;c.style.width=W*px+'px';c.style.height=H*px+'px';c.className='patch';
+  const x=c.getContext('2d');x.scale(d,d);x.fillStyle='#fff';x.fillRect(0,0,W*px,H*px);const p=spot(nr);if(!p)return c;const C=B.grid.cols,sz=px*0.86,o=(px-sz)/2;
+  for(let y=0;y<H;y++)for(let q=0;q<W;q++){const v=B.grid.nr[(p.r+y-2)*C+p.q+q-3],im=v===nr?(UPIMG[nr]||IMG[v]):IMG[v];if(im)x.drawImage(im,q*px+o,y*px+o,sz,sz);}
+  x.strokeStyle='rgba(0,0,0,.18)';x.lineWidth=1;for(let i=1;i<W;i++){x.beginPath();x.moveTo(i*px+.5,0);x.lineTo(i*px+.5,H*px);x.stroke();}for(let i=1;i<H;i++){x.beginPath();x.moveTo(0,i*px+.5);x.lineTo(W*px,i*px+.5);x.stroke();}
+  x.strokeStyle='#E69F00';x.lineWidth=2;x.strokeRect(3*px+1,2*px+1,px-2,px-2);return c;}
+let rTok=0;async function renderUploads(){const tok=++rTok;const U=getUploads(),nrs=Object.keys(U).map(Number).sort((a,b)=>a-b),box=$('cards');
+  for(const n of nrs){if(!UPIMG[n])UPIMG[n]=await img(durl(U[n].svg));if(!SCORE[n]){const cur=await score(CUR[n],n),nw=await score(U[n].svg,n);SCORE[n]={cur,nw,same:await sameInk(U[n].svg,CUR[n])};}if(tok!==rTok)return;}
+  const only=$('onlyChg').checked,show=nrs.filter(n=>!only||!SCORE[n].same);
+  const t=$('sumTbl');t.hidden=!nrs.length;const f=v=>v.toFixed(3),dl=s=>{const d=s.nw-s.cur;return `<b class="${d>=0?'up':'dn'}">${d>=0?'+':''}${d.toFixed(3)}</b>`;};
+  t.innerHTML='<tr><th>nr</th><th>file</th><th>current</th><th>uploaded</th><th>Δ score</th><th>changed</th></tr>'+show.map(n=>`<tr><td>${n}</td><td style="text-align:left">${U[n].name.replace(/</g,'&lt;')}</td><td>${f(SCORE[n].cur)}</td><td>${f(SCORE[n].nw)}</td><td class="sc">${dl(SCORE[n])}</td><td>${SCORE[n].same?'no':'yes'}</td></tr>`).join('');
+  box.innerHTML='';const K=keyMap(B);
+  for(const n of show){const s=SCORE[n],k=K[n],d=document.createElement('div');d.className='card'+(s.same?' same':'');
+    d.innerHTML=`<div class="nr">${n}</div><div class="pair"><figure><img src="${durl(CUR[n])}"><figcaption>current</figcaption></figure><figure><img src="${durl(U[n].svg)}"><figcaption>uploaded</figcaption></figure></div>
+      <div style="display:flex;gap:4px">${(B.examples?.[n]||[]).map(u=>`<div class="ex2"><img class="scan" src="${u}"><img class="ov" src="${durl(U[n].svg)}"></div>`).join('')}</div>
+      <div class="sc"><b>${k?String(k.symbol).replace(/</g,'&lt;'):''}</b> ${U[n].name.replace(/</g,'&lt;')}<br>match vs scan: current ${f(s.cur)} → new ${f(s.nw)} (${dl(s)})<br><label><input type="checkbox" class="ovt"> overlay on scan</label>${U[n].warns?.length?`<br><span class="warn">${U[n].warns.join('; ').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`:''}</div>
+      <div class="pv"></div>`;
+    d.querySelector('.ovt').onchange=e=>d.classList.toggle('ovon',e.target.checked);const pv=d.querySelector('.pv');pv.append(patch(n,12),document.createElement('br'),patch(n,24));box.appendChild(d);}}
+const _onLoad=onLoad;start(async b=>{await _onLoad(b);await edInit();});
 </script></body></html>

@@ -15,6 +15,15 @@ Keyboard: `+`/`−` page (or zoom outside focus), `[` `]` zoom, `0` fit, `P` pag
 
 **Dev mode** adds a ☰ menu to the top bar with the extra controls (focus toggle, low-confidence outline, row/col jump, fullscreen, help, links to review/compare/symbols). Turn it on with `index.html?dev`, `?dev=1` or `#dev`; it is remembered in localStorage until you open `index.html?dev=0`.
 
+## Editing the symbols
+
+`symbols.html` has an editor section:
+
+1. **Download all SVGs** gives `chart-symbols.zip`: `symbols/01.svg` … `64.svg` (viewBox `0 0 100 100`, plain paths, no transforms) plus `README.txt` with the canvas, safe area and stroke guidelines.
+2. Edit them in any vector editor, then drop the edited `.svg` files or a `.zip` on the upload zone. Files are matched by name (`01.svg`, `1.svg`, `01-anything.svg`), sanitised (scripts, event handlers and external references removed) and rescaled to the expected viewBox, with a warning if it differed.
+3. Each upload shows current vs uploaded, the scan crops with an overlay, the match score against the scan average (current → new, Δ) and a 12/24 px chart patch. Uploads stay in this browser until **Discard uploads**. Open `index.html?localsymbols` to preview them in the viewer.
+4. **Download my set** zips the current set with your uploads applied. Import it with `python3 scripts/import_symbols.py my-chart-symbols.zip`, which validates the files, copies them into `symbols/`, rebuilds `sprite.svg` and `symbols.json`, and prints the scores.
+
 ## Licence
 - The code (HTML/JS/CSS and `scripts/`) is MIT licensed; see `LICENSE`.
 - The chart design, symbol key and cover picture belong to the original pattern publisher. The derived data in `data/` is shared only as a personal stitching aid and is **not** covered by the MIT licence. No full-page scans are included.
