@@ -61,7 +61,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
  <nav class="full ovf"><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
 </div>
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
-<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · <kbd>C</kbd> colours/symbols · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout) with a 10-stitch margin: the margin is dimmed, the page border is outlined, everything else is greyed.</div>
+<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · <kbd>C</kbd> colours/symbols · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout): the page is outlined and everything around it is dimmed. It is on by default (page 10).</div>
 <div id="leg" class="panel"><div id="legHead"><b>Legend</b><input id="legFilter" placeholder="Filter nr or name"><button id="legClose" title="Hide legend (L)">×</button></div><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips matching the filter">Select shown</button><span id="selSum"></span></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" hidden></div><div id="tip" class="panel"></div>
@@ -77,10 +77,10 @@ let TH={};function theme(t){document.documentElement.dataset.theme=t;try{localSt
   $('themeBtn').textContent=t==='dark'?'Light':'Dark';TH={bg:css('--bg'),cell:css('--cell'),sym:css('--sym'),grid:css('--grid'),grid10:css('--grid10'),acc:css('--acc'),acc2:css('--acc2'),fg:css('--fg'),mut:css('--mut')};chart=null;draw();}
 function lum(h){const n=parseInt(h.slice(1),16);return 0.299*(n>>16)+0.587*((n>>8)&255)+0.114*(n&255);}
 const isOn=nr=>!sel.size||sel.has(nr);
-let focus=false,page=1,FR=null;const MARG=10;
+let focus=false,page=10,FR=null;const PAD=3; // fit padding (stitches) so a little of the dimmed surroundings shows
 function pageRect(n){const p=B.meta.pages.find(x=>x.n===n);const r0=p.row-1,c0=p.col-1;return {r0,c0,r1:r0+p.rows,c1:c0+p.cols,
-  m0r:Math.max(0,r0-MARG),m0c:Math.max(0,c0-MARG),m1r:Math.min(R,r0+p.rows+MARG),m1c:Math.min(C,c0+p.cols+MARG)};}
-const outF=(r,q)=>focus&&FR&&(r<FR.m0r||r>=FR.m1r||q<FR.m0c||q>=FR.m1c);
+  m0r:r0-PAD,m0c:c0-PAD,m1r:r0+p.rows+PAD,m1c:c0+p.cols+PAD};}
+const outF=()=>false; // outside the page is dimmed by a veil, not greyed
 // unselected cells: desaturated + dimmed swatch, symbol still drawn in a muted tone
 function greyOf(h){const l=lum(h),dark=document.documentElement.dataset.theme==='dark',v=Math.round(dark?34+l*0.16:212+l*0.12);return `rgb(${v},${v},${v})`;}
 function cellFill(k,off){if(!k)return TH.cell;if(off||!isOn(k.nr))return mode==='col'?greyOf(k.hex):TH.cell;return mode==='col'?k.hex:TH.cell;}
@@ -116,11 +116,10 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
   const bw=Math.max(1,Math.min(2.5,s/6))*Math.min(dpr,2);
   for(let q=Math.ceil(c0/10)*10;q<=c1;q+=10)line(q,false,TH.grid10,bw);for(let r=Math.ceil(r0/10)*10;r<=r1;r+=10)line(r,true,TH.grid10,bw);
   if(showLow){ctx.strokeStyle=TH.acc2;ctx.lineWidth=Math.max(2*dpr,s/6);for(const v of lowSet){const r=(v/C)|0,q=v%C;if(r>=r0&&r<r1&&q>=c0&&q<c1)ctx.strokeRect(ox+q*s+1,oy+r*s+1,s-2,s-2);}}
-  if(focus&&FR){// margin band: dimmed veil over margin cells; page border outlined
-    const X=c=>ox+c*s,Y=r=>oy+r*s;ctx.save();ctx.beginPath();ctx.rect(X(FR.m0c),Y(FR.m0r),(FR.m1c-FR.m0c)*s,(FR.m1r-FR.m0r)*s);ctx.rect(X(FR.c1),Y(FR.r0),-(FR.c1-FR.c0)*s,(FR.r1-FR.r0)*s);
+  if(focus&&FR){// everything outside the page: dimmed veil; page border outlined
+    const X=c=>ox+c*s,Y=r=>oy+r*s;ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.rect(X(FR.c0),Y(FR.r0),(FR.c1-FR.c0)*s,(FR.r1-FR.r0)*s);
     ctx.fillStyle=TH.bg;ctx.globalAlpha=.45;ctx.fill('evenodd');ctx.globalAlpha=1;
-    ctx.setLineDash([6*dpr,4*dpr]);ctx.strokeStyle=TH.mut;ctx.lineWidth=1.5*dpr;ctx.strokeRect(X(FR.m0c),Y(FR.m0r),(FR.m1c-FR.m0c)*s,(FR.m1r-FR.m0r)*s);ctx.setLineDash([]);
-    ctx.strokeStyle=TH.acc;ctx.lineWidth=Math.max(2.5,Math.min(5,s/4))*dpr;ctx.strokeRect(X(FR.c0),Y(FR.r0),(FR.c1-FR.c0)*s,(FR.r1-FR.r0)*s);
+    ctx.strokeStyle=TH.acc;ctx.lineWidth=1.5*dpr;ctx.strokeRect(X(FR.c0),Y(FR.r0),(FR.c1-FR.c0)*s,(FR.r1-FR.r0)*s);
     ctx.font=`600 ${13*dpr}px system-ui`;ctx.fillStyle=TH.acc;ctx.textAlign='left';ctx.fillText(`Page ${page}`,X(FR.c0)+4*dpr,Y(FR.r0)-6*dpr);ctx.restore();}
   if(mark){ctx.strokeStyle=TH.acc;ctx.lineWidth=3*dpr;ctx.strokeRect(ox+(mark.c)*s-3*dpr,oy+(mark.r)*s-3*dpr,s+6*dpr,s+6*dpr);}
   // rulers
@@ -140,8 +139,8 @@ function avail(){const narrow=innerWidth<=700,legOpen=!$('leg').classList.contai
   return {x:12,y:top,w:innerWidth-legW-24,h:innerHeight-top-leg-(narrow?12:20)};}
 function fitRect(r0,c0,r1,c1,smooth=true){const a=avail();const s=clampS(Math.min(a.w/(c1-c0),a.h/(r1-r0)));
   const t={s,x:a.x+(a.w-(c1-c0)*s)/2-c0*s,y:a.y+(a.h-(r1-r0)*s)/2-r0*s};if(smooth)target=t;else{view=t;target=null;}draw();}
-function setFocus(on,n=page,smooth=true){focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'inline-flex':'none';
-  $('pgN').textContent=page;chart=null;if(B)legend();if(focus)fit(smooth);status();save();draw();}
+function setFocus(on,n=page,smooth=true,keep=false){focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'inline-flex':'none';
+  $('pgN').textContent=page;chart=null;if(B)legend();if(focus&&!keep)fit(smooth);status();save();draw();}
 function fit(smooth=true){if(!B)return;if(focus&&FR)return fitRect(FR.m0r,FR.m0c,FR.m1r,FR.m1c,smooth);fitRect(0,0,R,C,smooth);}
 function pageCounts(){const n={};for(let r=FR.r0;r<FR.r1;r++)for(let q=FR.c0;q<FR.c1;q++){const v=grid[r*C+q];n[v]=(n[v]||0)+1;}return n;}
 function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('legList');el.innerHTML='';const PC=focus&&FR?pageCounts():null;
@@ -164,7 +163,7 @@ async function onLoad(b){B=b;K=keyMap(b);R=b.grid.rows;C=b.grid.cols;await loadS
   lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*C+(c-1)));$('gr').max=R;$('gc').max=C;
   CNT={};grid.forEach(v=>CNT[v]=(CNT[v]||0)+1);legend();resize();
   let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'))}catch(e){}
-  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};if(sv.mode)setMode(sv.mode);if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||1,false);else if(sv.page)page=sv.page;}else fit(false);
+  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};if(sv.mode)setMode(sv.mode);if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
   status();draw();}
 // ---- input: mouse, wheel, touch (pointer events with pinch)
 const P=new Map();let pan=null,pinch=null,moved=false,lastTap=0;
