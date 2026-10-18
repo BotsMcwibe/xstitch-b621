@@ -61,7 +61,7 @@ nav a{color:var(--acc2);margin:0 4px;font-size:13px}
  <nav class="full ovf"><a href="review.html">Review</a><a href="compare.html">Compare</a><a href="symbols.html">Symbols</a></nav>
 </div>
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
-<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · Zoom presets: Fit · 12 · 24 · 40 px per stitch · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout): the page is outlined; changing page selects all symbols on the new page. It is on by default (page 10).</div>
+<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · Zoom presets: Fit · 12 · 24 · 40 px per stitch · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection<br>Page focus shows one printed page (4×4 layout): the page is outlined; the selection is kept when you change page. It is on by default (page 10).</div>
 <div id="leg" class="panel"><div id="legHead"><b>Legend</b><input id="legFilter" placeholder="Filter nr or name"><button id="legClose" title="Hide legend (L)">×</button></div><div id="selBar"><button id="selClr">Clear</button><button id="selInv">Invert</button><button id="selVis" title="Select all chips matching the filter">Select shown</button><span id="selSum"></span></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" hidden></div><div id="tip" class="panel"></div>
@@ -141,8 +141,7 @@ function avail(){const narrow=innerWidth<=700,legOpen=!$('leg').classList.contai
 function fitRect(r0,c0,r1,c1,smooth=true){const a=avail();const s=clampS(Math.min(a.w/(c1-c0),a.h/(r1-r0)));
   const t={s,x:a.x+(a.w-(c1-c0)*s)/2-c0*s,y:a.y+(a.h-(r1-r0)*s)/2-r0*s};if(smooth)target=t;else{view=t;target=null;}draw();}
 function setFocus(on,n=page,smooth=true,keep=false){const prevV={...view};focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'inline-flex':'none';
-  $('pgN').textContent=page;chart=null;if(focus&&!keep&&B){sel=new Set(Object.keys(pageCounts()).map(Number));} // page change: select the symbols shown on this page
-  if(B)legend();if(focus&&!keep){fit(false);if(zp&&zp!=='fit')preset(zp,false);else if(smooth){const t=view;view=prevV||view;target=t;}}status();save();draw();}
+  $('pgN').textContent=page;chart=null;if(B)legend();if(focus&&!keep){fit(false);if(zp&&zp!=='fit')preset(zp,false);else if(smooth){const t=view;view=prevV||view;target=t;}}status();save();draw();}
 function fit(smooth=true){if(!B)return;if(focus&&FR)return fitRect(FR.m0r,FR.m0c,FR.m1r,FR.m1c,smooth);fitRect(0,0,R,C,smooth);}
 function pageCounts(){const n={};for(let r=FR.r0;r<FR.r1;r++)for(let q=FR.c0;q<FR.c1;q++){const v=grid[r*C+q];n[v]=(n[v]||0)+1;}return n;}
 function legend(){const f=$('legFilter').value.trim().toLowerCase();const el=$('legList');el.innerHTML='';const PC=focus&&FR?pageCounts():null;
