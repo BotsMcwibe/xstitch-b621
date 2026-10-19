@@ -1,6 +1,6 @@
 // Vector chart symbols (symbols/symbols.json, viewBox 100x100) drawn via cached Path2D,
 // rasterised per (symbol, pixel size, colour) at devicePixelRatio so they stay sharp at any zoom.
-const RND=new URLSearchParams(location.search).get('round');export const SYMDIR=RND&&/^r\d$/.test(RND)?`symbols/rounds/${RND}/`:'symbols/';
+const RND=new URLSearchParams(location.search).get('round');export const SYMDIR=RND&&/^r\d[\w-]*$/.test(RND)?`symbols/rounds/${RND}/`:'symbols/';
 let SYM=null;const P2D={},CACHE=new Map(),OVR={};
 // ?localsymbols: use the symbols uploaded on symbols.html (kept in this browser) instead of the published ones. Off by default.
 export const LOCALSYM=new URLSearchParams(location.search).has('localsymbols');

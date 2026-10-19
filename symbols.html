@@ -14,7 +14,7 @@ body.overlay .ex img.ov{display:block}.big{width:120px;height:120px;border:1px s
 </style></head><body>
 <header><b>Symbol check</b><nav><a href="index.html">Viewer</a><a href="review.html">Review</a><a href="compare.html">Compare</a><a class="on" href="symbols.html">Symbols</a></nav>
 <label><input type="checkbox" id="ovChk"> Overlay the vector symbol (blue) on the scan crops</label>
-<label style="margin-left:1em">Design round <select id="rndSel"><option value="">current (active)</option><option value="r0">r0 (original)</option><option value="r1">r1</option><option value="r2">r2</option><option value="r3">r3</option></select></label>
+<label style="margin-left:1em">Design round <select id="rndSel"><option value="">current (active)</option><option value="r0">r0 (original)</option><option value="r1">r1</option><option value="r2">r2</option><option value="r3">r3</option><option value="r4-before-user">r4 (before your edits)</option><option value="r5-user">r5 (your Illustrator set)</option></select></label>
 <script>{const q=new URLSearchParams(location.search).get("round")||"";const e=document.getElementById("rndSel");e.value=q;e.onchange=()=>{const u=new URL(location.href);e.value?u.searchParams.set("round",e.value):u.searchParams.delete("round");location.href=u;};}</script>
 <button class="btn" id="copyBtn">Copy results</button><span id="copyMsg"></span><span id="prog"></span></header>
 <div id="statusbar"><span id="status"></span></div>
