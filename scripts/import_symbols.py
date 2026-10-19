@@ -2,6 +2,7 @@
 """Import an edited symbol set (zip from symbols.html "Download my set", or a folder of NN.svg files).
 
   python3 scripts/import_symbols.py my-chart-symbols.zip [--dry-run]
+  python3 scripts/import_symbols.py edited.svg --as 17      (single file)
 
 Validates each SVG (number from the file name, parseable, viewBox 0 0 100 100, no scripts/images/text),
 flattens shapes and transforms into plain paths, copies changed symbols into symbols/NN.svg, rebuilds
@@ -163,9 +164,14 @@ def inner(svgtext):
     return re.sub(r'^.*?<svg[^>]*>|</svg>\s*$', '', svgtext, flags=re.S)
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('src'); ap.add_argument('--dry-run', action='store_true'); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument('src'); ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--as', dest='as_nr', type=int, help='symbol number for a single .svg whose name has no number')
+    a = ap.parse_args()
     files = {}
-    if os.path.isdir(a.src):
+    if a.src.lower().endswith('.svg'):
+        name = f'{a.as_nr:02d}.svg' if a.as_nr else os.path.basename(a.src)
+        files[name] = open(a.src, encoding='utf-8').read()
+    elif os.path.isdir(a.src):
         for f in os.listdir(a.src):
             if f.lower().endswith('.svg'): files[f] = open(os.path.join(a.src, f), encoding='utf-8').read()
     else:
