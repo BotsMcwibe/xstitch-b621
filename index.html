@@ -86,7 +86,7 @@ button,.chip,#leg,#legTab,#bar,#help,input,label{touch-action:manipulation}
 <div hidden><button id="minBtn"></button><button id="focBtn"></button><button id="legBtn"><span id="legSel">All</span></button><button id="fsBtn"></button><button id="helpBtn"></button></div>
 
 <div id="help" class="panel"><b>Controls</b><br>Drag / one finger: pan · Wheel / pinch: zoom · Double-click / double-tap: zoom in<br>
-<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · Zoom presets: Fit · 12 · 24 · 40 px per stitch · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear selection / close help · <kbd>O</kbd> low-confidence outline · <kbd>G</kbd> jump to row/col · <kbd>?</kbd> this help<br>Page focus shows one printed page (4×4 layout): the page is outlined; the selection is kept when you change page. It is on by default (page 10).<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><label><input type="checkbox" id="lowChk"> Low-confidence outline (<kbd>O</kbd>)</label> <span>Row <input id="gr" type="number" min="1" style="width:4em"> Col <input id="gc" type="number" min="1" style="width:4em"> <button id="goBtn">Go</button> (<kbd>G</kbd>)</span> <button id="fsBtn2">⛶ Fullscreen (F)</button> <button id="focBtn2">Page focus on/off (P)</button></div><nav style="margin-top:6px"><a href="review.html">Review</a> · <a href="compare.html">Compare</a> · <a href="symbols.html">Symbols</a></nav></div>
+<kbd>F</kbd> fullscreen · <kbd>L</kbd> legend · <kbd>T</kbd> light/dark · Zoom presets: Fit · 12 · 24 · 40 px per stitch · <kbd>+</kbd>/<kbd>−</kbd> zoom (in page focus: next/previous page, wrapping 16→1 and 1→16) · <kbd>]</kbd>/<kbd>[</kbd> zoom in/out (always) · <kbd>0</kbd> fit (chart, or the page in focus) · <kbd>P</kbd> page focus on/off · arrow keys pan · <kbd>Esc</kbd> clear legend selection and cell pick / close help · click/tap a cell to pick it (frame); click again to clear · <kbd>O</kbd> low-confidence outline · <kbd>G</kbd> jump to row/col · <kbd>?</kbd> this help<br>Page focus shows one printed page (4×4 layout): the page is outlined; the selection is kept when you change page. It is on by default (page 10).<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><label><input type="checkbox" id="lowChk"> Low-confidence outline (<kbd>O</kbd>)</label> <span>Row <input id="gr" type="number" min="1" style="width:4em"> Col <input id="gc" type="number" min="1" style="width:4em"> <button id="goBtn">Go</button> (<kbd>G</kbd>)</span> <button id="fsBtn2">⛶ Fullscreen (F)</button> <button id="focBtn2">Page focus on/off (P)</button></div><nav style="margin-top:6px"><a href="review.html">Review</a> · <a href="compare.html">Compare</a> · <a href="symbols.html">Symbols</a></nav></div>
 <div id="leg" class="panel"><div id="selBar"><button id="selClr">Clear</button><button id="selInv" hidden></button><button id="selVis" hidden></button><span id="selSum"></span><button id="legClose" title="Hide legend (L)" aria-label="Close legend">×</button></div><div id="legList"></div></div>
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" hidden></div><div id="tip" class="panel"></div>
@@ -133,7 +133,7 @@ function idleBuild(list){if(idleH)return;idleH=1;ric(function step(d){idleH=0;wh
 const RAW=new Map();function symbolBitmapRaw(nr,px,col){const k=nr+'|'+px+'|'+col;let c=RAW.get(k);if(c)return c;
   c=document.createElement('canvas');c.width=c.height=px;const x=c.getContext('2d');const b=symbolBitmap(nr,px/dpr,col);x.drawImage(b,0,0,px,px);RAW.set(k,c);return c;}
 function draw(){if(raf)return;raf=requestAnimationFrame(render);}
-let saveT=0;function saveNow(){if(!B)return;const v=target||view;try{localStorage.setItem('deerchart:view',JSON.stringify({s:v.s,x:v.x,y:v.y,zp,sel:[...sel],focus,page,mode,low:showLow,leg:!$('leg').classList.contains('hide'),w:innerWidth,h:innerHeight}))}catch(e){}}
+let saveT=0;function saveNow(){if(!B)return;const v=target||view;try{localStorage.setItem('deerchart:view',JSON.stringify({s:v.s,x:v.x,y:v.y,zp,sel:[...sel],focus,page,mode,low:showLow,leg:!$('leg').classList.contains('hide'),w:innerWidth,h:innerHeight,picked:picked?{r:picked.r,c:picked.c}:null}))}catch(e){}}
 function save(){clearTimeout(saveT);saveT=setTimeout(saveNow,250);}addEventListener('pagehide',saveNow);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveNow();});
 let lastMiss=0,gestUntil=0;const snap=document.createElement('canvas');let snapV=null;
 function gesturing(){return P.size>=2||performance.now()<gestUntil||!!target;}
@@ -173,7 +173,8 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
     const X=c=>ox+c*s,Y=r=>oy+r*s;ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.rect(X(FR.c0),Y(FR.r0),(FR.c1-FR.c0)*s,(FR.r1-FR.r0)*s);
         ctx.strokeStyle=TH.acc;ctx.lineWidth=1.5*dpr;ctx.strokeRect(X(FR.c0),Y(FR.r0),(FR.c1-FR.c0)*s,(FR.r1-FR.r0)*s);
     ctx.font=`600 ${13*dpr}px system-ui`;ctx.fillStyle=TH.acc;ctx.textAlign='left';ctx.fillText(`Page ${page}`,X(FR.c0)+4*dpr,Y(FR.r0)-6*dpr);ctx.restore();}
-  if(mark){ctx.strokeStyle=TH.acc;ctx.lineWidth=3*dpr;ctx.strokeRect(ox+(mark.c)*s-3*dpr,oy+(mark.r)*s-3*dpr,s+6*dpr,s+6*dpr);}
+  if(picked){const lw=2*dpr,pad=lw/2+0.5*dpr;ctx.strokeStyle=TH.acc;ctx.lineWidth=lw;ctx.strokeRect(ox+picked.c*s-pad,oy+picked.r*s-pad,s+2*pad,s+2*pad);}
+  if(mark&&(!picked||mark.r!==picked.r||mark.c!==picked.c)){ctx.strokeStyle=TH.acc;ctx.lineWidth=2*dpr;ctx.strokeRect(ox+mark.c*s-2*dpr,oy+mark.r*s-2*dpr,s+4*dpr,s+4*dpr);}
   // rulers
   const fs=11*dpr;ctx.font=`${fs}px system-ui`;ctx.fillStyle=TH.bg;ctx.globalAlpha=.85;ctx.fillRect(0,H-0,0,0);ctx.globalAlpha=1;ctx.fillStyle=TH.mut;
   const step=s*10<28*dpr?50:10;ctx.textAlign='center';const ty=Math.max(fs+2,Math.min(H-4,oy-4));
@@ -182,7 +183,7 @@ function render(){raf=0;if(B)save();if(target){const k=0.28;view.s+= (target.s-v
   for(let r=Math.ceil(r0/step)*step;r<=r1;r+=step)if(r>0)ctx.fillText(r,tx,oy+r*s+fs/3);
   if(!lastMiss){if(snap.width!==W||snap.height!==H){snap.width=W;snap.height=H;}snap.getContext('2d').drawImage(cv,0,0);snapV={...view};}
 }
-let mark=null,tipT=0;
+let mark=null,picked=null;
 function placeSeg(){}
 let rzT=0;function resize(){placeSeg();setTimeout(capLeg,0);clearTimeout(rzT);rzT=setTimeout(()=>{if(B&&zp==='fit')fit(false);},150);dpr=Math.min(3,window.devicePixelRatio||1);cv.width=Math.round(innerWidth*dpr);cv.height=Math.round(innerHeight*dpr);RAW.clear();tilesReset();draw();}
 addEventListener('resize',resize);
@@ -226,7 +227,7 @@ async function onLoad(b){B=b;K=keyMap(b);R=b.grid.rows;C=b.grid.cols;await loadS
   lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*C+(c-1)));$('gr').max=R;$('gc').max=C;
   CNT={};grid.forEach(v=>CNT[v]=(CNT[v]||0)+1);legend();resize();
   let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'))}catch(e){}
-  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};zp=sv.zp===undefined||sv.zp==='b10'?(sv.focus||sv.zp==='b10'?'fit':null):sv.zp; /* views saved before presets existed: refit the page */if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
+  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};zp=sv.zp===undefined||sv.zp==='b10'?(sv.focus||sv.zp==='b10'?'fit':null):sv.zp; /* views saved before presets existed: refit the page */if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.picked&&Number.isInteger(sv.picked.r)&&Number.isInteger(sv.picked.c)&&sv.picked.r>=0&&sv.picked.r<R&&sv.picked.c>=0&&sv.picked.c<C)picked={r:sv.picked.r,c:sv.picked.c};if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
   segUI();status();draw();
   // fit again once layout (toolbar, legend sheet state, safe areas) has settled
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(zp)preset(zp,false);}));setTimeout(()=>{if(zp)preset(zp,false);},400);}
@@ -238,13 +239,12 @@ cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);P.set(e.
 cv.addEventListener('pointermove',e=>{if(P.has(e.pointerId))P.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pinch&&P.size===2){const [a,b]=[...P.values()],d=Math.hypot(a.x-b.x,a.y-b.y),mx=(a.x+b.x)/2,my=(a.y+b.y)/2,ns=clampS(pinch.v.s*d/pinch.d);
     if(zp){zp=null;segUI();}view={s:ns,x:mx-(pinch.mx-pinch.v.x)*ns/pinch.v.s,y:my-(pinch.my-pinch.v.y)*ns/pinch.v.s};moved=true;draw();status();return;}
-  if(pan){const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;view.x=pan.vx+dx;view.y=pan.vy+dy;draw();tip.style.display='none';return;}
-  if(e.pointerType==='mouse'&&B){const c=cellAt(e.clientX,e.clientY);if(!c){tip.style.display='none';return;}tip.innerHTML=info(c);
-    tip.style.left=Math.min(innerWidth-200,e.clientX+16)+'px';tip.style.top=Math.min(innerHeight-80,e.clientY+16)+'px';tip.style.display='block';}});
+  if(pan){const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(Math.abs(dx)+Math.abs(dy)>3)moved=true;view.x=pan.vx+dx;view.y=pan.vy+dy;draw();return;}
+});
 const up=e=>{const wasPinch=P.size>=2;P.delete(e.pointerId);if(P.size<2)pinch=null;if(wasPinch){gestUntil=0;draw();}if(P.size===1){const [a]=[...P.values()];pan={x:a.x,y:a.y,vx:view.x,vy:view.y};}
   if(P.size===0){pan=null;cv.classList.remove('drag');
-    if(!moved&&B){const now=Date.now();if(now-lastTap<300){zp=null;segUI();zoomAt(2,e.clientX,e.clientY);lastTap=0;}else{lastTap=now;const c=cellAt(e.clientX,e.clientY);if(c&&e.pointerType!=='mouse'){tip.innerHTML=info(c);tip.style.left=Math.min(innerWidth-210,e.clientX+12)+'px';tip.style.top=Math.max(60,e.clientY-70)+'px';tip.style.display='block';clearTimeout(tipT);tipT=setTimeout(()=>tip.style.display='none',2500);}}}}};
-cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.addEventListener('pointerleave',()=>tip.style.display='none');
+    if(!moved&&B){const now=Date.now();if(now-lastTap<300){zp=null;segUI();zoomAt(2,e.clientX,e.clientY);lastTap=0;}else{lastTap=now;const c=cellAt(e.clientX,e.clientY);if(c){if(picked&&picked.r===c.r&&picked.c===c.q)picked=null;else picked={r:c.r,c:c.q};saveNow();draw();}}}}};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('wheel',e=>{e.preventDefault();gestUntil=performance.now()+400;endGesture();if(zp){zp=null;segUI();}const dz=e.ctrlKey?e.deltaY*3:e.deltaY;zoomAt(Math.exp(-dz*0.0022),e.clientX,e.clientY);setTimeout(status,250);},{passive:false});
 // ---- controls
 
@@ -258,7 +258,7 @@ function preset(z,smooth=true){zp=z;segUI();if(z==='fit'){fit(smooth);save();ret
 document.querySelectorAll('#zSeg [data-z]').forEach(b=>b.onclick=()=>preset(b.dataset.z));
 $('lowChk').onchange=e=>{showLow=e.target.checked;draw();};
 $('goBtn').onclick=()=>{const r=+$('gr').value,c=+$('gc').value;if(!B||!(r>=1&&r<=R&&c>=1&&c<=C))return;const s=Math.max(view.s,28);
-  mark={r:r-1,c:c-1};target={s,x:innerWidth/2-(c-0.5)*s,y:innerHeight/2-(r-0.5)*s};draw();setTimeout(()=>{mark=null;draw();},2500);};
+  picked={r:r-1,c:c-1};target={s,x:innerWidth/2-(c-0.5)*s,y:innerHeight/2-(r-0.5)*s};saveNow();draw();};
 ['gr','gc'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').click();}));
 const togLeg=()=>{setTimeout(layBar,230);$('leg').classList.toggle('hide');document.body.classList.toggle('noleg',$('leg').classList.contains('hide'));$('legBtn').classList.toggle('on',!$('leg').classList.contains('hide'));};
 $('legBtn').onclick=togLeg;$('legClose').onclick=togLeg;$('legTab').onclick=togLeg;$('selClr').onclick=()=>{sel.clear();selChanged();};$('selInv').onclick=()=>{sel=new Set(B.key.map(k=>k.nr).filter(n=>!sel.has(n)));selChanged();};$('selVis').onclick=()=>{const f='';const PC=focus&&FR?pageCounts():null;B.key.forEach(k=>{if(PC&&!PC[k.nr])return;if(!f||String(k.nr)===f||k.symbol.toLowerCase().includes(f)||(k.code||'').toLowerCase().includes(f))sel.add(k.nr);});selChanged();};
@@ -269,7 +269,7 @@ $('minBtn').onclick=()=>$('bar').classList.toggle(innerWidth<=700?'menu':'min');
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
   if(k==='f'||k==='F')fsToggle();else if(k==='l'||k==='L')togLeg();else if(k==='t'||k==='T')$('themeBtn').click();
   else if(k==='+'||k==='=')focus?setFocus(true,page+1):zIn();else if(k==='-'||k==='_')focus?setFocus(true,page-1):zOut();else if(k===']')zIn();else if(k==='[')zOut();else if(k==='p'||k==='P')setFocus(!focus);
-  else if(k==='0')preset('fit');else if(k==='Escape'){sel.clear();selChanged();$('help').classList.remove('show');}else if(k==='?'||k==='h'||k==='H')$('helpBtn').click();else if(k==='o'||k==='O'){$('lowChk').click();}else if(k==='g'||k==='G'){$('help').classList.add('show');$('gr').focus();}
+  else if(k==='0')preset('fit');else if(k==='Escape'){sel.clear();selChanged();picked=null;saveNow();draw();$('help').classList.remove('show');}else if(k==='?'||k==='h'||k==='H')$('helpBtn').click();else if(k==='o'||k==='O'){$('lowChk').click();}else if(k==='g'||k==='G'){$('help').classList.add('show');$('gr').focus();}
   else if(k.startsWith('Arrow')){const d=120,b=target||view;target={...b,x:b.x+(k==='ArrowLeft'?d:k==='ArrowRight'?-d:0),y:b.y+(k==='ArrowUp'?d:k==='ArrowDown'?-d:0)};draw();}else return;e.preventDefault();});
 let t0='light';try{t0=localStorage.getItem('deerchart:theme')||'light'}catch(e){}theme(t0);$('legBtn').classList.add('on');
 if(innerWidth<700)$('leg').classList.add('hide');
