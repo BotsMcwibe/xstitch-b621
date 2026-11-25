@@ -78,7 +78,7 @@ button,.chip,#leg,#legTab,#bar,#help,input,label{touch-action:manipulation}
 <canvas id="cv"></canvas>
 <div id="bar">
  <span class="pill" id="devPill" hidden><button id="devMenu" title="Dev menu: extra controls and help (?)" aria-label="Menu">☰</button></span>
- <span class="pill" id="pgCtl" style="display:none"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10l4.5-4.5 4.5 4.5"/></svg></button><span id="pgN" hidden>1</span><button id="pgNext" title="Next page (+)" aria-label="Next page"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6l4.5 4.5 4.5-4.5"/></svg></button></span>
+ <span class="pill" id="pgCtl"><button id="pgPrev" title="Previous page (−)" aria-label="Previous page"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10l4.5-4.5 4.5 4.5"/></svg></button><span id="pgN" hidden>1</span><button id="pgNext" title="Next page (+)" aria-label="Next page"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6l4.5 4.5 4.5-4.5"/></svg></button></span>
  <span class="pill seg" id="zSeg" title="Zoom presets (wheel, pinch and [ ] still zoom freely)"><button data-z="fit" title="Fit page / chart (0)" aria-label="Fit"><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 5.5v-4h4M10.5 1.5h4v4M14.5 10.5v4h-4M5.5 14.5h-4v-4"/></svg></button><button data-z="12" title="12 px per stitch">12</button><button data-z="24" title="24 px per stitch">24</button><button data-z="40" title="40 px per stitch">40</button></span>
  <span class="pill"><button id="themeBtn" title="Light / dark (T)" aria-label="Light / dark"></button></span>
  <span class="pill" id="fsPill"><button id="fsTop" title="Fullscreen (F)" aria-label="Fullscreen" hidden><svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v4M14 2l-4.5 4.5M6 14H2v-4M2 14l4.5-4.5"/></svg></button></span>
@@ -91,8 +91,8 @@ button,.chip,#leg,#legTab,#bar,#help,input,label{touch-action:manipulation}
 <div id="legTab" class="panel" title="Show legend (L)">Legend</div>
 <div id="status" hidden></div><div id="tip" class="panel"></div>
 <script type="module">
-import {start,keyMap,getCorr} from './js/bundle.js';
-import {loadSymbols,symbolBitmap,symUrl} from './js/symbols.js';
+import {start,keyMap,getCorr} from './js/bundle.js?v=5';
+import {loadSymbols,symbolBitmap,symUrl} from './js/symbols.js?v=5';
 const $=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d'),tip=$('tip'),st=$('status');
 const MINPX=2.5,MAXPX=90;
 let B=null,K={},grid=null,R=0,C=0,mode='sym' /* colours mode removed: always symbols */,sel=new Set(),CNT={},showLow=false,lowSet=new Set(),dpr=1;
@@ -194,7 +194,7 @@ function avail(){const narrow=innerWidth<=700,legOpen=!$('leg').classList.contai
   return {x:12,y:top,w:innerWidth-legW-24,h:innerHeight-top-leg-(narrow?12:20)};}
 function fitRect(r0,c0,r1,c1,smooth=true){const a=avail();const s=clampS(Math.min(a.w/(c1-c0),a.h/(r1-r0)));
   const t={s,x:a.x+(a.w-(c1-c0)*s)/2-c0*s,y:a.y+(a.h-(r1-r0)*s)/2-r0*s};if(smooth)target=t;else{view=t;target=null;}draw();}
-function setFocus(on,n=page,smooth=true,keep=false){const prevV={...view};focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display=focus?'flex':'none';
+function setFocus(on,n=page,smooth=true,keep=false){const prevV={...view};focus=on;page=((n-1+16)%16)+1;FR=focus?pageRect(page):null;$('focBtn').classList.toggle('on',focus);$('pgCtl').style.display='flex';
   $('pgN').textContent=page;if(B)legend();if(focus&&!keep){fit(false);if(zp&&zp!=='fit')preset(zp,false);else if(smooth){const t=view;view=prevV||view;target=t;}}status();save();draw();}
 function fit(smooth=true){if(!B)return;if(focus&&FR)return fitRect(FR.m0r,FR.m0c,FR.m1r,FR.m1c,smooth);fitRect(0,0,R,C,smooth);}
 function pageCounts(){const n={};for(let r=FR.r0;r<FR.r1;r++)for(let q=FR.c0;q<FR.c1;q++){const v=grid[r*C+q];n[v]=(n[v]||0)+1;}return n;}
@@ -222,12 +222,30 @@ function status(){} // bottom info bar removed; selection total lives in the leg
 function cellAt(x,y){const q=Math.floor((x-view.x)/view.s),r=Math.floor((y-view.y)/view.s);return r>=0&&q>=0&&r<R&&q<C?{r,q}:null;}
 function info(cell){const nr=grid[cell.r*C+cell.q],k=K[nr],cf=B.grid.conf?B.grid.conf[cell.r*C+cell.q]:null;
   return `Row ${cell.r+1}, col ${cell.q+1}<br>#${nr} ${k?k.symbol:''}${k&&k.code?' · '+k.code:''}${cf!=null?`<br>confidence ${cf}%`:''}`;}
+function restoreView(){
+  let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'));}catch(e){sv=null;}
+  const pageOf=n=>{n=Number(n);return Number.isInteger(n)&&n>=1&&n<=16?n:10;};
+  // Old saves (before page focus) have no `focus` flag. Treat missing/invalid as on, page 10.
+  // Only an explicit boolean false means the user turned focus off.
+  if(!sv||typeof sv!=='object'||!isFinite(+sv.s)){setFocus(true,10,false);return;}
+  const x=Number(sv.x),y=Number(sv.y);
+  view={s:clampS(+sv.s),x:isFinite(x)?x+(innerWidth-(+sv.w||innerWidth))/2:0,y:isFinite(y)?y+(innerHeight-(+sv.h||innerHeight))/2:0};
+  zp=sv.zp===undefined||sv.zp==='b10'||sv.zp==='10'?'fit':(String(sv.zp)==='12'||String(sv.zp)==='24'||String(sv.zp)==='40'?String(sv.zp):sv.zp==='fit'?'fit':null);
+  if(Array.isArray(sv.sel))sel=new Set(sv.sel.map(Number).filter(n=>K[n]));
+  if(sv.picked&&Number.isInteger(+sv.picked.r)&&Number.isInteger(+sv.picked.c)){const r=+sv.picked.r,c=+sv.picked.c;if(r>=0&&r<R&&c>=0&&c<C)picked={r,c};}
+  if(sv.low){showLow=true;$('lowChk').checked=true;}
+  if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();
+  legend();
+  const pg=pageOf(sv.page);
+  if(sv.focus===false){page=pg;FR=null;focus=false;$('focBtn').classList.remove('on');fit(false);}
+  else setFocus(true,pg,false,true);
+}
 async function onLoad(b){B=b;K=keyMap(b);R=b.grid.rows;C=b.grid.cols;await loadSymbols();
   grid=Int16Array.from(b.grid.nr);const corr=getCorr();for(const [rc,v] of Object.entries(corr)){const [r,c]=rc.split(',').map(Number);grid[(r-1)*C+(c-1)]=v;}
   lowSet=new Set((b.grid.low||[]).filter(([r,c])=>!corr[r+','+c]).map(([r,c])=>(r-1)*C+(c-1)));$('gr').max=R;$('gc').max=C;
   CNT={};grid.forEach(v=>CNT[v]=(CNT[v]||0)+1);legend();resize();
-  let sv=null;try{sv=JSON.parse(localStorage.getItem('deerchart:view'))}catch(e){}
-  if(sv&&isFinite(sv.s)){view={s:clampS(sv.s),x:sv.x+(innerWidth-(sv.w||innerWidth))/2,y:sv.y+(innerHeight-(sv.h||innerHeight))/2};zp=sv.zp===undefined||sv.zp==='b10'?(sv.focus||sv.zp==='b10'?'fit':null):sv.zp; /* views saved before presets existed: refit the page */if(Array.isArray(sv.sel))sel=new Set(sv.sel.filter(n=>K[n]));if(sv.picked&&Number.isInteger(sv.picked.r)&&Number.isInteger(sv.picked.c)&&sv.picked.r>=0&&sv.picked.r<R&&sv.picked.c>=0&&sv.picked.c<C)picked={r:sv.picked.r,c:sv.picked.c};if(sv.low){showLow=true;$('lowChk').checked=true;}if(sv.leg===false&&!$('leg').classList.contains('hide'))togLeg();legend();if(sv.focus)setFocus(true,sv.page||10,false,true);else{if(sv.page)page=sv.page;fit(false);}}else setFocus(true,10,false);
+  try{restoreView();}catch(e){try{setFocus(true,10,false);}catch(e2){}}
+
   segUI();status();draw();
   // fit again once layout (toolbar, legend sheet state, safe areas) has settled
   requestAnimationFrame(()=>requestAnimationFrame(()=>{if(zp)preset(zp,false);}));setTimeout(()=>{if(zp)preset(zp,false);},400);}
